@@ -190,7 +190,7 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
 
         # Generate response
         try:
-            response = self.llm.generate(messages, max_tokens=300, temperature=0.8)
+            response = self.llm.generate(messages, temperature=0.8)
         except Exception as e:
             response = f"Mi scuso, ho avuto un problema tecnico. Può ripetere per favore? (Errore: {e})"
 
