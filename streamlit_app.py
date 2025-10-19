@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 from llm_provider import create_llm_provider
 from waiter_agent import WaiterAgent
@@ -284,7 +285,30 @@ def main():
     
     with col1:
         st.markdown("### 💬 Chat con il Cameriere")
-        
+
+        # Pulsante rapido suggerimenti in base all'orario
+        hour = datetime.now().hour
+        if hour < 11:
+            advice = "Suggerimenti per la colazione"
+            prompt = "Cosa mi consigli per la colazione?"
+        elif hour < 16:
+            advice = "Suggerimenti per il pranzo"
+            prompt = "Cosa mi consigli per il pranzo?"
+        else:
+            advice = "Suggerimenti per la cena"
+            prompt = "Cosa mi consigli per la cena?"
+        if st.button(f"💡 {advice}"):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            # Genera subito la risposta del cameriere
+            with st.spinner("🧑‍🍳 Il cameriere sta pensando..."):
+                try:
+                    response = agent.chat(prompt)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                except Exception as e:
+                    error_msg = f"❌ Errore: {str(e)}"
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            st.rerun()
+
         # Initialize chat history
         if "messages" not in st.session_state:
             st.session_state.messages = []

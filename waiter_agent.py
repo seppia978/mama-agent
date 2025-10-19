@@ -234,6 +234,114 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
             print(f"   Frase rilevata: {[p for p in non_order_phrases if p in message_lower]}")
             return []
         
+        # Conferme implicite/cumulative: aggiungi suggerimenti dell'assistente
+        # PRIMA di controllare le keyword di ordine esplicito
+        conferma_keywords = [
+            "facciamo", "aggiungi", "aggiungili", "aggiungile", "aggiungilo", "aggiungiamoli", 
+            "ok", "va bene", "perfetto", "conferma", "prendiamo anche", "prendiamo sia", 
+            "prendiamo tutti", "prendiamo tutto", "va bene sia", "va bene entrambi", 
+            "va bene tutti", "prendiamo questi", "prendiamo quelle", "aggiungilo all'ordine",
+            "aggiungili all'ordine", "mettilo nell'ordine", "mettili nell'ordine"
+        ]
+        if any(kw in message_lower for kw in conferma_keywords):
+            # Estrai tutti i piatti/vini suggeriti nell'ultima risposta dell'assistente
+            if assistant_response:
+                response_lower = assistant_response.lower()
+                found_items = []
+                # Get already ordered items to avoid duplicates
+                already_ordered = {order_item["item"]["nome"].lower() for order_item in self.order.items}
+                
+                # Cerca tutti i piatti del menu menzionati nella risposta
+                for sezione in self.menu.get("sezioni", []):
+                    for item in sezione.get('voci', []):
+                        item_name = item["nome"].lower()
+                        # Skip if already in order or already in found_items
+                        if item_name in already_ordered:
+                            continue
+                        if any(f["nome"].lower() == item_name for f in found_items):
+                            continue
+                        # Check if mentioned in response (exact match)
+                        if item_name in response_lower:
+                            found_items.append({"nome": item["nome"], "taglia": None})
+                            continue
+                        
+                        # Fuzzy matching per vini (es. "Vermentino" → "Vermentino di Gallura")
+                        item_words = set(item_name.split())
+                        response_words = set(response_lower.split())
+                        # Se almeno una parola del nome del piatto (escluse parole comuni) è nella risposta
+                        common_words = {'di', 'del', 'della', 'il', 'la', 'e', 'con', 'alla', 'al'}
+                        meaningful_words = item_words - common_words
+                        if meaningful_words and any(word in response_words for word in meaningful_words):
+                            # Verifica che sia plausibile (es. "vino vermentino" → trova "Vermentino di Gallura")
+                            if any(word in response_lower for word in meaningful_words):
+                                found_items.append({"nome": item["nome"], "taglia": None})
+                
+                # Cerca anche nelle categorie vecchie
+                for categoria, items in self.menu.get("categorie", {}).items():
+                    for item in items:
+                        item_name = item["nome"].lower()
+                        # Skip if already in order or already in found_items
+                        if item_name in already_ordered:
+                            continue
+                        if any(f["nome"].lower() == item_name for f in found_items):
+                            continue
+                        # Check if mentioned in response (exact match)
+                        if item_name in response_lower:
+                            found_items.append({"nome": item["nome"], "taglia": None})
+                            continue
+                        
+                        # Fuzzy matching
+                        item_words = set(item_name.split())
+                        response_words = set(response_lower.split())
+                        common_words = {'di', 'del', 'della', 'il', 'la', 'e', 'con', 'alla', 'al'}
+                        meaningful_words = item_words - common_words
+                        if meaningful_words and any(word in response_words for word in meaningful_words):
+                            if any(word in response_lower for word in meaningful_words):
+                                found_items.append({"nome": item["nome"], "taglia": None})
+                
+                if found_items:
+                    print(f"✨ Conferma implicita: aggiungo suggeriti: {[f['nome'] for f in found_items]}")
+                    return found_items
+                
+                # SOLO se non ha trovato nulla nel menu, cerca voci personalizzate (vini generici, bevande)
+                # Pattern per vini generici: "vino [nome]", "calice di [nome]"
+                print("⚠️ Nessun item trovato nel menu, cerco voci personalizzate...")
+                import re
+                custom_items = []
+                wine_patterns = [
+                    r'vino\s+(\w+)',
+                    r'calice\s+di\s+(\w+)',
+                    r'bottiglia\s+di\s+(\w+)',
+                ]
+                for pattern in wine_patterns:
+                    matches = re.findall(pattern, response_lower, re.IGNORECASE)
+                    for wine_name in matches:
+                        wine_name = wine_name.strip().capitalize()
+                        if wine_name and wine_name.lower() not in already_ordered:
+                            # Verifica che non sia già nel menu (controllo doppio)
+                            found_in_menu = False
+                            for sezione in self.menu.get("sezioni", []):
+                                for item in sezione.get('voci', []):
+                                    if wine_name.lower() in item["nome"].lower():
+                                        found_in_menu = True
+                                        break
+                                if found_in_menu:
+                                    break
+                            
+                            if not found_in_menu:
+                                # Crea voce personalizzata per il vino
+                                custom_item = {
+                                    "nome": f"Vino {wine_name}",
+                                    "taglia": None,
+                                    "prezzo": 0.0,  # Prezzo da definire
+                                    "custom": True
+                                }
+                                custom_items.append(custom_item)
+                                print(f"🍷 Creata voce personalizzata: {custom_item['nome']} (prezzo da verificare)")
+                
+                if custom_items:
+                    return custom_items
+        
         # Skip if it's clearly ONLY a question (no order intent)
         has_question = any(q in message_lower for q in question_keywords)
         has_order = any(o in message_lower for o in order_keywords)
@@ -327,9 +435,18 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
         
         return found_items
 
-    def _find_menu_item(self, item_name: str, taglia: str = None) -> Optional[Dict]:
-        """Find menu item by name and optional size"""
+    def _find_menu_item(self, item_name: str, taglia: str = None, custom_price: float = None) -> Optional[Dict]:
+        """Find menu item by name and optional size, or create custom item"""
         item_name_lower = item_name.lower()
+        
+        # Check if it's a custom item (e.g., wine not in menu)
+        if custom_price is not None:
+            return {
+                'nome': item_name,
+                'prezzo': custom_price,
+                'id': item_name,
+                'custom': True
+            }
         
         # Search in new format (sezioni)
         sections = self.menu.get("sezioni", [])
@@ -409,16 +526,20 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
             for item_data in ordered_items:
                 item_name = item_data.get('nome', '')
                 taglia = item_data.get('taglia')
+                custom_price = item_data.get('prezzo')
                 
-                # Find item in menu
-                menu_item = self._find_menu_item(item_name, taglia)
+                # Find item in menu (or create custom item)
+                menu_item = self._find_menu_item(item_name, taglia, custom_price)
                 
                 if menu_item:
                     # Check if not already in order
                     item_id = menu_item.get('id', menu_item['nome'])
                     if not any(order_item["item"].get("id") == item_id for order_item in self.order.items):
                         self.order.add_item(menu_item)
-                        print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f}")
+                        if menu_item.get('custom'):
+                            print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f} (prezzo da verificare)")
+                        else:
+                            print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f}")
 
         # Update conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
