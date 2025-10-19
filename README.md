@@ -89,7 +89,22 @@ vllm serve meta-llama/Llama-3.1-8B-Instruct --port 8000
 
 ## Utilizzo
 
-### Modalità Interattiva (CLI)
+### 🌐 Interfaccia Web (Streamlit) - **CONSIGLIATO**
+
+La modalità più facile e bella per usare il cameriere virtuale:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+L'applicazione si aprirà automaticamente nel browser con:
+- 💬 Chat interattiva con il cameriere
+- 📝 Visualizzazione ordine in tempo reale
+- 📋 Menu consultabile
+- 🎨 Interfaccia moderna e intuitiva
+- 🔄 Pulsanti per reset rapido
+
+### 💻 Modalità Interattiva (CLI)
 
 ```bash
 # Con Ollama (default)
@@ -105,7 +120,7 @@ python main.py --provider openai_compatible --base-url http://localhost:8000/v1
 python main.py --menu il_mio_menu.json
 ```
 
-### Comandi Speciali
+### Comandi Speciali (Solo CLI)
 
 Durante la conversazione, puoi usare questi comandi:
 

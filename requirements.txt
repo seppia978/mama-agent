@@ -4,3 +4,4 @@ python-dotenv
 transformers>=4.30.0
 torch>=2.0.0
 accelerate
+streamlit>=1.50.0

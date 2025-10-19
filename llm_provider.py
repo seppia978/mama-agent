@@ -19,9 +19,9 @@ class LLMProvider(ABC):
 class OllamaProvider(LLMProvider):
     """Provider for Ollama API (recommended for ease of use)"""
 
-    def __init__(self, model_name: str = "llama3.2:1b", base_url: str = "http://localhost:11434"):
-        self.model_name = model_name
+    def __init__(self, base_url: str = "http://localhost:11434", model_name: str = "llama3.2:3b"):
         self.base_url = base_url
+        self.model_name = model_name
 
     def generate(self, messages: List[Dict[str, str]], max_tokens: int = 512, temperature: float = 0.7) -> str:
         """Generate response using Ollama API"""
@@ -102,17 +102,18 @@ class HuggingFaceProvider(LLMProvider):
 
 
 class OpenAICompatibleProvider(LLMProvider):
-    """Provider for OpenAI-compatible APIs (vLLM, LM Studio, etc.)"""
+    """Provider per OpenAI API ufficiale e compatibili (vLLM, LM Studio, ecc.)"""
 
-    def __init__(self, base_url: str = "http://localhost:8000/v1", api_key: str = "dummy", model_name: str = "llama-3.1-8b-instruct"):
+    def __init__(self, base_url: str = None, api_key: str = "dummy", model_name: str = "llama-3.1-8b-instruct"):
+        # Se non specificato, usa l'endpoint OpenAI ufficiale
+        if base_url is None:
+            base_url = "https://api.openai.com/v1"
         self.base_url = base_url
         self.api_key = api_key
         self.model_name = model_name
 
     def generate(self, messages: List[Dict[str, str]], max_tokens: int = 512, temperature: float = 0.7) -> str:
-        """Generate response using OpenAI-compatible API"""
         import requests
-
         try:
             response = requests.post(
                 f"{self.base_url}/chat/completions",

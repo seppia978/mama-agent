@@ -43,26 +43,57 @@ def print_welcome():
 def print_menu(menu: dict):
     """Print formatted menu"""
     print("\n" + "=" * 60)
-    print(f"📋 MENU - {menu['ristorante']}")
+    print(f"📋 MENU - {menu.get('ristorante', 'Ristorante')}")
+    if 'edizione' in menu:
+        print(f"   {menu['edizione']}")
+    if 'luogo' in menu:
+        print(f"   📍 {menu['luogo']}")
     print("=" * 60)
 
-    for categoria, items in menu["categorie"].items():
-        print(f"\n{categoria.upper()}")
-        print("-" * 40)
-        for item in items:
-            print(f"\n{item['nome']} - {item['prezzo']:.2f}€")
-            print(f"  {item['descrizione']}")
-            if "suggerimenti" in item:
-                print(f"  💡 {item['suggerimenti']}")
-            tags = []
-            if item.get("vegetariano"):
-                tags.append("🌱 VEGETARIANO")
-            if item.get("vegano"):
-                tags.append("🌿 VEGANO")
-            if tags:
-                print(f"  {' '.join(tags)}")
-            if item.get("allergeni"):
-                print(f"  ⚠️  Allergeni: {', '.join(item['allergeni'])}")
+    # Support both old format (categorie) and new format (sezioni)
+    sections = menu.get("sezioni", [])
+    if sections:
+        # New format with sezioni
+        for sezione in sections:
+            print(f"\n{sezione['nome'].upper()}")
+            print("-" * 40)
+            for item in sezione.get('voci', []):
+                # Handle items with sizes
+                if 'taglie' in item:
+                    print(f"\n{item['nome']}")
+                    for taglia in item['taglie']:
+                        print(f"  • {taglia['nome']}: €{taglia['prezzo']:.2f}")
+                else:
+                    prezzo = item.get('prezzo', 0)
+                    print(f"\n{item['nome']} - €{prezzo:.2f}")
+                
+                if "descrizione" in item:
+                    print(f"  {item['descrizione']}")
+                if "varianti" in item:
+                    print(f"  🔸 Varianti: {', '.join(item['varianti'][:3])}...")
+                if item.get("allergeni"):
+                    allergeni_legend = menu.get('allergeni_legend', {})
+                    allergeni_nomi = [allergeni_legend.get(str(a), str(a)) for a in item['allergeni'][:3]]
+                    print(f"  ⚠️  Allergeni: {', '.join(allergeni_nomi)}...")
+    else:
+        # Old format with categorie
+        for categoria, items in menu.get("categorie", {}).items():
+            print(f"\n{categoria.upper()}")
+            print("-" * 40)
+            for item in items:
+                print(f"\n{item['nome']} - {item['prezzo']:.2f}€")
+                print(f"  {item['descrizione']}")
+                if "suggerimenti" in item:
+                    print(f"  💡 {item['suggerimenti']}")
+                tags = []
+                if item.get("vegetariano"):
+                    tags.append("🌱 VEGETARIANO")
+                if item.get("vegano"):
+                    tags.append("🌿 VEGANO")
+                if tags:
+                    print(f"  {' '.join(tags)}")
+                if item.get("allergeni"):
+                    print(f"  ⚠️  Allergeni: {', '.join(item['allergeni'])}")
 
     print("\n" + "=" * 60 + "\n")
 

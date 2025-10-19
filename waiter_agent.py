@@ -109,6 +109,8 @@ REGOLE IMPORTANTI:
 6. Proponi abbinamenti (antipasto+primo, vino+cibo, dolce+digestivo)
 7. Non inventare piatti che non sono nel menu
 8. Se il cliente chiede qualcosa non disponibile, proponi alternative simili
+9. Se il cliente chiede informazioni su un piatto del menu (significato del nome, ingredienti, preparazione), rispondi in modo professionale spiegando il piatto
+10. "Pane, vino e zucchero" è un piatto tradizionale emiliano: pane tostato con vino rosso e zucchero, tipico della cucina povera contadina
 
 FORMATO RISPOSTE:
 - Rispondi in modo conversazionale come un vero cameriere
@@ -120,20 +122,54 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
 
     def _format_menu_for_llm(self) -> str:
         """Format menu in a readable way for the LLM"""
-        menu_text = ""
-        for categoria, items in self.menu["categorie"].items():
-            menu_text += f"\n{categoria.upper()}:\n"
-            for item in items:
-                menu_text += f"- {item['nome']} ({item['prezzo']}€): {item['descrizione']}"
-                if "suggerimenti" in item:
-                    menu_text += f" | Suggerimento: {item['suggerimenti']}"
-                if item.get("vegetariano"):
-                    menu_text += " [VEGETARIANO]"
-                if item.get("vegano"):
-                    menu_text += " [VEGANO]"
-                if "allergeni" in item and item["allergeni"]:
-                    menu_text += f" | Allergeni: {', '.join(item['allergeni'])}"
-                menu_text += "\n"
+        menu_text = f"\nMENU - {self.menu.get('ristorante', 'Ristorante')}\n"
+        if 'edizione' in self.menu:
+            menu_text += f"Edizione: {self.menu['edizione']}\n"
+        
+        # Support both old format (categorie) and new format (sezioni)
+        sections = self.menu.get("sezioni", [])
+        if sections:
+            # New format with sezioni
+            for sezione in sections:
+                menu_text += f"\n{sezione['nome'].upper()}:\n"
+                for item in sezione.get('voci', []):
+                    # Handle items with sizes/taglie
+                    if 'taglie' in item:
+                        menu_text += f"- {item['nome']}:\n"
+                        for taglia in item['taglie']:
+                            menu_text += f"  * {taglia['nome']}: €{taglia.get('prezzo', 0):.2f}\n"
+                    else:
+                        prezzo = item.get('prezzo')
+                        if prezzo is not None:
+                            menu_text += f"- {item['nome']} (€{prezzo:.2f})"
+                        else:
+                            menu_text += f"- {item['nome']}"
+                        if "descrizione" in item:
+                            menu_text += f": {item['descrizione']}"
+                        if "varianti" in item:
+                            menu_text += f" | Varianti: {', '.join(item['varianti'][:3])}..."
+                        menu_text += "\n"
+                    
+                    # Add allergen info
+                    if "allergeni" in item and item["allergeni"]:
+                        allergeni_legend = self.menu.get('allergeni_legend', {})
+                        allergeni_nomi = [allergeni_legend.get(str(a), str(a)) for a in item['allergeni']]
+                        menu_text += f"  Allergeni: {', '.join(allergeni_nomi)}\n"
+        else:
+            # Old format with categorie
+            for categoria, items in self.menu.get("categorie", {}).items():
+                menu_text += f"\n{categoria.upper()}:\n"
+                for item in items:
+                    menu_text += f"- {item['nome']} (€{item.get('prezzo', 0):.2f}): {item.get('descrizione', '')}"
+                    if "suggerimenti" in item:
+                        menu_text += f" | Suggerimento: {item['suggerimenti']}"
+                    if item.get("vegetariano"):
+                        menu_text += " [VEGETARIANO]"
+                    if item.get("vegano"):
+                        menu_text += " [VEGANO]"
+                    if "allergeni" in item and item["allergeni"]:
+                        menu_text += f" | Allergeni: {', '.join(item['allergeni'])}"
+                    menu_text += "\n"
         return menu_text
 
     def _build_context_message(self) -> str:
@@ -158,6 +194,180 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
 
         return context
 
+    def _extract_order_with_llm(self, user_message: str, assistant_response: str) -> List[Dict]:
+        """
+        Extract ordered items using keyword matching + fuzzy search
+        More reliable than pure LLM extraction with small models
+        """
+        # Simple but effective: check for ordering keywords
+        message_lower = user_message.lower()
+        
+        # Check if this is an order confirmation
+        order_keywords = ["prendo", "vorrei", "voglio", "ordino", "porto", "portare", "prendiamo", "per me"]
+        question_keywords = ["costa", "prezzo", "cos'è", "cos è", "cosa è", "cosa significa", "che significa", "come", "che tipo", "quale", "mi consigli", "suggerisci", "cosa", "quanto", "che cos'è"]
+        
+        # Strong indicators that it's NOT an order (information requests)
+        non_order_phrases = [
+            "nel menu c'è",
+            "vedo che",
+            "ho visto",
+            "c'è una voce",
+            "che significa",
+            "cosa significa",
+            "cos'è",
+            "che cos'è",
+            "mi spieghi",
+            "puoi spiegarmi",
+            "vorrei sapere",
+            "mi dici",
+            "mi puoi dire",
+            "chiamata",
+            "chiamato"
+        ]
+        
+        # Check for non-order phrases (strong indicators of questions)
+        is_info_request = any(phrase in message_lower for phrase in non_order_phrases)
+        
+        # If it's clearly an information request, don't extract
+        if is_info_request:
+            print(f"🚫 Rilevata domanda informativa, skip estrazione ordine")
+            print(f"   Frase rilevata: {[p for p in non_order_phrases if p in message_lower]}")
+            return []
+        
+        # Skip if it's clearly ONLY a question (no order intent)
+        has_question = any(q in message_lower for q in question_keywords)
+        has_order = any(o in message_lower for o in order_keywords)
+        
+        # If it has question words but no order keywords, skip
+        if has_question and not has_order:
+            return []
+        
+        # Only extract if there are explicit ordering keywords
+        if not has_order:
+            return []
+
+        # Riconoscimento acqua anche se non è nel menu
+        acqua_keywords = ["acqua", "bottiglia d'acqua", "bicchiere d'acqua", "acqua naturale", "acqua frizzante"]
+        if any(kw in message_lower for kw in acqua_keywords):
+            print("💧 Aggiungo acqua all'ordine (voce gratuita)")
+            return [{"nome": "Acqua", "taglia": None, "prezzo": 0.0}]
+
+        # Check for pronoun references (lo/la prendo, questo, quello)
+        # In this case, look at the assistant's last response for context
+        pronoun_phrases = ["lo prendo", "la prendo", "li prendo", "le prendo", "lo voglio", "la voglio", 
+                          "questo", "quella", "quello", "questi", "quelli", "perfetto! lo", "ok! lo", "va bene! lo"]
+        uses_pronoun = any(phrase in message_lower for phrase in pronoun_phrases)
+        
+        if uses_pronoun and assistant_response:
+            # Extract item names from assistant's response (the item being discussed)
+            response_lower = assistant_response.lower()
+            for sezione in self.menu.get("sezioni", []):
+                for item in sezione.get('voci', []):
+                    item_name_lower = item["nome"].lower()
+                    # Check if the assistant was talking about this item
+                    if item_name_lower in response_lower:
+                        taglia = None
+                        if 'taglie' in item:
+                            if 'grande' in message_lower or 'grosso' in message_lower:
+                                taglia = 'grande'
+                            elif 'piccolo' in message_lower:
+                                taglia = 'piccolo'
+                            else:
+                                taglia = 'piccolo'  # Default
+                        print(f"✨ Riferimento pronominale rilevato: '{item['nome']}' (dal contesto)")
+                        return [{"nome": item["nome"], "taglia": taglia}]
+            
+            # Check old format too
+            for categoria, items in self.menu.get("categorie", {}).items():
+                for item in items:
+                    if item["nome"].lower() in response_lower:
+                        print(f"✨ Riferimento pronominale rilevato: '{item['nome']}' (dal contesto)")
+                        return [{"nome": item["nome"], "taglia": None}]
+        
+        # Extract items by searching menu
+        found_items = []
+        
+        # Support both old and new format
+        sections = self.menu.get("sezioni", [])
+        if sections:
+            # New format
+            for sezione in sections:
+                for item in sezione.get('voci', []):
+                    item_name = item["nome"].lower()
+                    
+                    # Check if item name appears in message
+                    # Use partial matching for better results
+                    words_in_message = set(message_lower.split())
+                    words_in_item = set(item_name.split())
+                    
+                    # Check for direct mention or key words match
+                    if (item_name in message_lower or 
+                        len(words_in_item & words_in_message) >= min(2, len(words_in_item))):
+                        
+                        # Determine size if applicable
+                        taglia = None
+                        if 'taglie' in item:
+                            if 'grande' in message_lower or 'grosso' in message_lower:
+                                taglia = 'grande'
+                            elif 'piccolo' in message_lower:
+                                taglia = 'piccolo'
+                            else:
+                                taglia = 'piccolo'  # Default
+                        
+                        found_items.append({"nome": item["nome"], "taglia": taglia})
+                        break  # Only match once per section
+        else:
+            # Old format
+            for categoria, items in self.menu.get("categorie", {}).items():
+                for item in items:
+                    item_name = item["nome"].lower()
+                    if item_name in message_lower:
+                        found_items.append({"nome": item["nome"], "taglia": None})
+                        break
+        
+        return found_items
+
+    def _find_menu_item(self, item_name: str, taglia: str = None) -> Optional[Dict]:
+        """Find menu item by name and optional size"""
+        item_name_lower = item_name.lower()
+        
+        # Search in new format (sezioni)
+        sections = self.menu.get("sezioni", [])
+        if sections:
+            for sezione in sections:
+                for item in sezione.get('voci', []):
+                    if item_name_lower in item["nome"].lower() or item["nome"].lower() in item_name_lower:
+                        # Handle items with sizes
+                        if 'taglie' in item and taglia:
+                            for t in item['taglie']:
+                                if taglia.lower() in t['nome'].lower():
+                                    return {
+                                        **item,
+                                        'nome': f"{item['nome']} ({t['nome']})",
+                                        'prezzo': t['prezzo'],
+                                        'id': f"{item['nome']}_{t['nome']}"
+                                    }
+                            # If size not found, use first
+                            t = item['taglie'][0]
+                            return {
+                                **item,
+                                'nome': f"{item['nome']} ({t['nome']})",
+                                'prezzo': t['prezzo'],
+                                'id': f"{item['nome']}_{t['nome']}"
+                            }
+                        elif 'prezzo' in item:
+                            if 'id' not in item:
+                                item['id'] = item['nome']
+                            return item
+        
+        # Search in old format (categorie)
+        for categoria, items in self.menu.get("categorie", {}).items():
+            for item in items:
+                if item_name_lower in item["nome"].lower() or item["nome"].lower() in item_name_lower:
+                    return item
+        
+        return None
+
     def chat(self, user_message: str) -> str:
         """
         Process user message and generate response
@@ -170,9 +380,6 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
         """
         # Detect and update customer preferences
         self._extract_preferences(user_message)
-
-        # Detect if customer is ordering items
-        self._detect_order_items(user_message)
 
         # Build messages for LLM
         messages = [{"role": "system", "content": self.system_prompt}]
@@ -193,6 +400,25 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
             response = self.llm.generate(messages, temperature=0.8)
         except Exception as e:
             response = f"Mi scuso, ho avuto un problema tecnico. Può ripetere per favore? (Errore: {e})"
+
+        # Extract and add ordered items using LLM
+        ordered_items = self._extract_order_with_llm(user_message, response)
+        
+        if ordered_items:
+            print(f"🔍 Items estratti dall'LLM: {ordered_items}")
+            for item_data in ordered_items:
+                item_name = item_data.get('nome', '')
+                taglia = item_data.get('taglia')
+                
+                # Find item in menu
+                menu_item = self._find_menu_item(item_name, taglia)
+                
+                if menu_item:
+                    # Check if not already in order
+                    item_id = menu_item.get('id', menu_item['nome'])
+                    if not any(order_item["item"].get("id") == item_id for order_item in self.order.items):
+                        self.order.add_item(menu_item)
+                        print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f}")
 
         # Update conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
@@ -230,16 +456,57 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
 
         # Simple keyword matching for orders
         # In a production system, you might want to use the LLM to extract structured data
-        for categoria, items in self.menu["categorie"].items():
-            for item in items:
-                item_name_lower = item["nome"].lower()
-                # Check if item name is mentioned
-                if item_name_lower in message_lower:
-                    # Check for ordering keywords
-                    if any(keyword in message_lower for keyword in ["prendo", "vorrei", "voglio", "ordino", "porto"]):
-                        # Check if not already in order
-                        if not any(order_item["item"]["id"] == item["id"] for order_item in self.order.items):
-                            self.order.add_item(item)
+        
+        # Support both old format (categorie) and new format (sezioni)
+        sections = self.menu.get("sezioni", [])
+        if sections:
+            # New format with sezioni
+            for sezione in sections:
+                for item in sezione.get('voci', []):
+                    item_name_lower = item["nome"].lower()
+                    # Check if item name is mentioned
+                    if item_name_lower in message_lower:
+                        # Check for ordering keywords
+                        if any(keyword in message_lower for keyword in ["prendo", "vorrei", "voglio", "ordino", "porto"]):
+                            # For items with sizes, try to detect which size
+                            if 'taglie' in item:
+                                # Try to detect size
+                                if 'grande' in message_lower:
+                                    taglia = next((t for t in item['taglie'] if 'grande' in t['nome'].lower()), item['taglie'][0])
+                                elif 'piccolo' in message_lower:
+                                    taglia = next((t for t in item['taglie'] if 'piccolo' in t['nome'].lower()), item['taglie'][0])
+                                else:
+                                    taglia = item['taglie'][0]  # Default to first size
+                                
+                                # Create item with selected size
+                                item_with_size = {
+                                    **item,
+                                    'nome': f"{item['nome']} ({taglia['nome']})",
+                                    'prezzo': taglia['prezzo'],
+                                    'id': f"{item['nome']}_{taglia['nome']}"
+                                }
+                                # Check if not already in order
+                                if not any(order_item["item"].get("id") == item_with_size["id"] for order_item in self.order.items):
+                                    self.order.add_item(item_with_size)
+                            else:
+                                # Regular item
+                                if 'id' not in item:
+                                    item['id'] = item['nome']  # Use name as ID if not present
+                                # Check if not already in order
+                                if not any(order_item["item"].get("id") == item.get("id") for order_item in self.order.items):
+                                    self.order.add_item(item)
+        else:
+            # Old format with categorie
+            for categoria, items in self.menu.get("categorie", {}).items():
+                for item in items:
+                    item_name_lower = item["nome"].lower()
+                    # Check if item name is mentioned
+                    if item_name_lower in message_lower:
+                        # Check for ordering keywords
+                        if any(keyword in message_lower for keyword in ["prendo", "vorrei", "voglio", "ordino", "porto"]):
+                            # Check if not already in order
+                            if not any(order_item["item"]["id"] == item["id"] for order_item in self.order.items):
+                                self.order.add_item(item)
 
     def get_order(self) -> Order:
         """Get current order"""
@@ -267,26 +534,58 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
         results = []
         query_lower = query.lower() if query else ""
 
-        for categoria, items in self.menu["categorie"].items():
-            for item in items:
-                # Apply filters
-                if filters:
-                    if filters.get("vegetarian") and not item.get("vegetariano"):
-                        continue
-                    if filters.get("max_price") and item["prezzo"] > filters["max_price"]:
-                        continue
-                    if filters.get("category") and categoria != filters["category"]:
-                        continue
-                    if filters.get("exclude_allergens"):
-                        if any(allergen in item.get("allergeni", []) for allergen in filters["exclude_allergens"]):
+        # Support both old format (categorie) and new format (sezioni)
+        sections = self.menu.get("sezioni", [])
+        if sections:
+            # New format with sezioni
+            for sezione in sections:
+                categoria = sezione['nome']
+                for item in sezione.get('voci', []):
+                    # Apply filters
+                    if filters:
+                        item_prezzo = item.get('prezzo', 0)
+                        if 'taglie' in item:
+                            item_prezzo = min(t['prezzo'] for t in item['taglie'])
+                        
+                        if filters.get("vegetarian") and not item.get("vegetariano"):
                             continue
+                        if filters.get("max_price") and item_prezzo > filters["max_price"]:
+                            continue
+                        if filters.get("category") and categoria != filters["category"]:
+                            continue
+                        if filters.get("exclude_allergens"):
+                            if any(allergen in item.get("allergeni", []) for allergen in filters["exclude_allergens"]):
+                                continue
 
-                # Search in name and description
-                if query_lower:
-                    if (query_lower in item["nome"].lower() or
-                        query_lower in item.get("descrizione", "").lower()):
+                    # Search in name and description
+                    if query_lower:
+                        if (query_lower in item["nome"].lower() or
+                            query_lower in item.get("descrizione", "").lower()):
+                            results.append({**item, "categoria": categoria})
+                    else:
                         results.append({**item, "categoria": categoria})
-                else:
-                    results.append({**item, "categoria": categoria})
+        else:
+            # Old format with categorie
+            for categoria, items in self.menu.get("categorie", {}).items():
+                for item in items:
+                    # Apply filters
+                    if filters:
+                        if filters.get("vegetarian") and not item.get("vegetariano"):
+                            continue
+                        if filters.get("max_price") and item["prezzo"] > filters["max_price"]:
+                            continue
+                        if filters.get("category") and categoria != filters["category"]:
+                            continue
+                        if filters.get("exclude_allergens"):
+                            if any(allergen in item.get("allergeni", []) for allergen in filters["exclude_allergens"]):
+                                continue
+
+                    # Search in name and description
+                    if query_lower:
+                        if (query_lower in item["nome"].lower() or
+                            query_lower in item.get("descrizione", "").lower()):
+                            results.append({**item, "categoria": categoria})
+                    else:
+                        results.append({**item, "categoria": categoria})
 
         return results

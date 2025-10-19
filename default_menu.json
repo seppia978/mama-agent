@@ -1,0 +1,190 @@
+{
+  "ristorante": "Mama's Trattoria",
+  "categorie": {
+    "antipasti": [
+      {
+        "id": "ant_001",
+        "nome": "Bruschetta Classica",
+        "descrizione": "Pane tostato con pomodoro fresco, basilico e olio extravergine",
+        "prezzo": 6.50,
+        "allergeni": ["glutine"],
+        "vegetariano": true,
+        "suggerimenti": "Perfetta per iniziare, la nostra bruschetta usa pomodori del nostro orto!"
+      },
+      {
+        "id": "ant_002",
+        "nome": "Tagliere di Salumi e Formaggi",
+        "descrizione": "Selezione di salumi e formaggi locali con marmellata di fichi",
+        "prezzo": 12.00,
+        "allergeni": ["lattosio"],
+        "vegetariano": false,
+        "suggerimenti": "Ottimo da condividere, include prosciutto crudo di Parma DOP!"
+      },
+      {
+        "id": "ant_003",
+        "nome": "Caprese",
+        "descrizione": "Mozzarella di bufala, pomodori freschi e basilico",
+        "prezzo": 8.50,
+        "allergeni": ["lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Mozzarella di bufala campana DOP, freschissima!"
+      }
+    ],
+    "primi": [
+      {
+        "id": "pri_001",
+        "nome": "Spaghetti alla Carbonara",
+        "descrizione": "Ricetta tradizionale romana con guanciale, pecorino e uova",
+        "prezzo": 11.00,
+        "allergeni": ["glutine", "uova", "lattosio"],
+        "vegetariano": false,
+        "suggerimenti": "Il nostro piatto più richiesto! Ricetta della nonna, mantecata al momento."
+      },
+      {
+        "id": "pri_002",
+        "nome": "Penne all'Arrabbiata",
+        "descrizione": "Pasta con pomodoro piccante, aglio e prezzemolo",
+        "prezzo": 9.00,
+        "allergeni": ["glutine"],
+        "vegetariano": true,
+        "vegano": true,
+        "suggerimenti": "Per chi ama il piccante! Possiamo regolare il livello di peperoncino."
+      },
+      {
+        "id": "pri_003",
+        "nome": "Risotto ai Funghi Porcini",
+        "descrizione": "Risotto cremoso con funghi porcini e parmigiano",
+        "prezzo": 13.50,
+        "allergeni": ["lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Specialità stagionale, i funghi sono freschi del bosco!"
+      },
+      {
+        "id": "pri_004",
+        "nome": "Lasagne della Casa",
+        "descrizione": "Lasagne al ragù di carne con besciamella",
+        "prezzo": 10.50,
+        "allergeni": ["glutine", "lattosio"],
+        "vegetariano": false,
+        "suggerimenti": "Fatte in casa ogni mattina, porzione generosa!"
+      }
+    ],
+    "secondi": [
+      {
+        "id": "sec_001",
+        "nome": "Bistecca alla Fiorentina",
+        "descrizione": "Bistecca di manzo alla griglia (600g)",
+        "prezzo": 28.00,
+        "allergeni": [],
+        "vegetariano": false,
+        "suggerimenti": "Per veri intenditori! Carne chianina IGP, cottura al sangue consigliata."
+      },
+      {
+        "id": "sec_002",
+        "nome": "Pollo al Limone",
+        "descrizione": "Petto di pollo con salsa al limone e rosmarino",
+        "prezzo": 14.00,
+        "allergeni": [],
+        "vegetariano": false,
+        "suggerimenti": "Leggero e gustoso, accompagnato da patate al forno."
+      },
+      {
+        "id": "sec_003",
+        "nome": "Melanzane alla Parmigiana",
+        "descrizione": "Melanzane grigliate con pomodoro, mozzarella e parmigiano",
+        "prezzo": 11.00,
+        "allergeni": ["lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Piatto vegetariano ricco e saporito, ricetta siciliana!"
+      }
+    ],
+    "contorni": [
+      {
+        "id": "con_001",
+        "nome": "Insalata Mista",
+        "descrizione": "Insalata verde con pomodori, carote e cetrioli",
+        "prezzo": 4.50,
+        "allergeni": [],
+        "vegetariano": true,
+        "vegano": true
+      },
+      {
+        "id": "con_002",
+        "nome": "Patate al Forno",
+        "descrizione": "Patate croccanti al rosmarino",
+        "prezzo": 5.00,
+        "allergeni": [],
+        "vegetariano": true,
+        "vegano": true
+      }
+    ],
+    "dolci": [
+      {
+        "id": "dol_001",
+        "nome": "Tiramisù",
+        "descrizione": "Classico tiramisù con savoiardi, mascarpone e caffè",
+        "prezzo": 6.50,
+        "allergeni": ["glutine", "uova", "lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Il nostro dolce più famoso! Preparato al momento ogni giorno."
+      },
+      {
+        "id": "dol_002",
+        "nome": "Panna Cotta",
+        "descrizione": "Panna cotta con coulis di frutti di bosco",
+        "prezzo": 5.50,
+        "allergeni": ["lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Leggera e delicata, perfetta per chiudere il pasto."
+      },
+      {
+        "id": "dol_003",
+        "nome": "Gelato Artigianale",
+        "descrizione": "3 gusti a scelta (cioccolato, vaniglia, fragola, limone, pistacchio)",
+        "prezzo": 5.00,
+        "allergeni": ["lattosio"],
+        "vegetariano": true,
+        "suggerimenti": "Gelato artigianale fatto in casa!"
+      }
+    ],
+    "bevande": [
+      {
+        "id": "bev_001",
+        "nome": "Acqua Naturale/Frizzante",
+        "descrizione": "Bottiglia 1L",
+        "prezzo": 2.50,
+        "allergeni": []
+      },
+      {
+        "id": "bev_002",
+        "nome": "Vino della Casa",
+        "descrizione": "Rosso o bianco, calice o caraffa (0.5L)",
+        "prezzo": 4.00,
+        "allergeni": ["solfiti"],
+        "suggerimenti": "Il nostro rosso si abbina perfettamente con i primi al ragù!"
+      },
+      {
+        "id": "bev_003",
+        "nome": "Birra Artigianale",
+        "descrizione": "Birra locale, 33cl",
+        "prezzo": 5.00,
+        "allergeni": ["glutine"]
+      },
+      {
+        "id": "bev_004",
+        "nome": "Caffè Espresso",
+        "descrizione": "Caffè italiano",
+        "prezzo": 1.50,
+        "allergeni": []
+      },
+      {
+        "id": "bev_005",
+        "nome": "Limoncello",
+        "descrizione": "Limoncello artigianale",
+        "prezzo": 3.50,
+        "allergeni": [],
+        "suggerimenti": "Fatto in casa con limoni di Sorrento, perfetto per il digestivo!"
+      }
+    ]
+  }
+}

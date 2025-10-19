@@ -1,190 +1,237 @@
 {
-  "ristorante": "Mama's Trattoria",
-  "categorie": {
-    "antipasti": [
-      {
-        "id": "ant_001",
-        "nome": "Bruschetta Classica",
-        "descrizione": "Pane tostato con pomodoro fresco, basilico e olio extravergine",
-        "prezzo": 6.50,
-        "allergeni": ["glutine"],
-        "vegetariano": true,
-        "suggerimenti": "Perfetta per iniziare, la nostra bruschetta usa pomodori del nostro orto!"
-      },
-      {
-        "id": "ant_002",
-        "nome": "Tagliere di Salumi e Formaggi",
-        "descrizione": "Selezione di salumi e formaggi locali con marmellata di fichi",
-        "prezzo": 12.00,
-        "allergeni": ["lattosio"],
-        "vegetariano": false,
-        "suggerimenti": "Ottimo da condividere, include prosciutto crudo di Parma DOP!"
-      },
-      {
-        "id": "ant_003",
-        "nome": "Caprese",
-        "descrizione": "Mozzarella di bufala, pomodori freschi e basilico",
-        "prezzo": 8.50,
-        "allergeni": ["lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Mozzarella di bufala campana DOP, freschissima!"
-      }
-    ],
-    "primi": [
-      {
-        "id": "pri_001",
-        "nome": "Spaghetti alla Carbonara",
-        "descrizione": "Ricetta tradizionale romana con guanciale, pecorino e uova",
-        "prezzo": 11.00,
-        "allergeni": ["glutine", "uova", "lattosio"],
-        "vegetariano": false,
-        "suggerimenti": "Il nostro piatto più richiesto! Ricetta della nonna, mantecata al momento."
-      },
-      {
-        "id": "pri_002",
-        "nome": "Penne all'Arrabbiata",
-        "descrizione": "Pasta con pomodoro piccante, aglio e prezzemolo",
-        "prezzo": 9.00,
-        "allergeni": ["glutine"],
-        "vegetariano": true,
-        "vegano": true,
-        "suggerimenti": "Per chi ama il piccante! Possiamo regolare il livello di peperoncino."
-      },
-      {
-        "id": "pri_003",
-        "nome": "Risotto ai Funghi Porcini",
-        "descrizione": "Risotto cremoso con funghi porcini e parmigiano",
-        "prezzo": 13.50,
-        "allergeni": ["lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Specialità stagionale, i funghi sono freschi del bosco!"
-      },
-      {
-        "id": "pri_004",
-        "nome": "Lasagne della Casa",
-        "descrizione": "Lasagne al ragù di carne con besciamella",
-        "prezzo": 10.50,
-        "allergeni": ["glutine", "lattosio"],
-        "vegetariano": false,
-        "suggerimenti": "Fatte in casa ogni mattina, porzione generosa!"
-      }
-    ],
-    "secondi": [
-      {
-        "id": "sec_001",
-        "nome": "Bistecca alla Fiorentina",
-        "descrizione": "Bistecca di manzo alla griglia (600g)",
-        "prezzo": 28.00,
-        "allergeni": [],
-        "vegetariano": false,
-        "suggerimenti": "Per veri intenditori! Carne chianina IGP, cottura al sangue consigliata."
-      },
-      {
-        "id": "sec_002",
-        "nome": "Pollo al Limone",
-        "descrizione": "Petto di pollo con salsa al limone e rosmarino",
-        "prezzo": 14.00,
-        "allergeni": [],
-        "vegetariano": false,
-        "suggerimenti": "Leggero e gustoso, accompagnato da patate al forno."
-      },
-      {
-        "id": "sec_003",
-        "nome": "Melanzane alla Parmigiana",
-        "descrizione": "Melanzane grigliate con pomodoro, mozzarella e parmigiano",
-        "prezzo": 11.00,
-        "allergeni": ["lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Piatto vegetariano ricco e saporito, ricetta siciliana!"
-      }
-    ],
-    "contorni": [
-      {
-        "id": "con_001",
-        "nome": "Insalata Mista",
-        "descrizione": "Insalata verde con pomodori, carote e cetrioli",
-        "prezzo": 4.50,
-        "allergeni": [],
-        "vegetariano": true,
-        "vegano": true
-      },
-      {
-        "id": "con_002",
-        "nome": "Patate al Forno",
-        "descrizione": "Patate croccanti al rosmarino",
-        "prezzo": 5.00,
-        "allergeni": [],
-        "vegetariano": true,
-        "vegano": true
-      }
-    ],
-    "dolci": [
-      {
-        "id": "dol_001",
-        "nome": "Tiramisù",
-        "descrizione": "Classico tiramisù con savoiardi, mascarpone e caffè",
-        "prezzo": 6.50,
-        "allergeni": ["glutine", "uova", "lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Il nostro dolce più famoso! Preparato al momento ogni giorno."
-      },
-      {
-        "id": "dol_002",
-        "nome": "Panna Cotta",
-        "descrizione": "Panna cotta con coulis di frutti di bosco",
-        "prezzo": 5.50,
-        "allergeni": ["lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Leggera e delicata, perfetta per chiudere il pasto."
-      },
-      {
-        "id": "dol_003",
-        "nome": "Gelato Artigianale",
-        "descrizione": "3 gusti a scelta (cioccolato, vaniglia, fragola, limone, pistacchio)",
-        "prezzo": 5.00,
-        "allergeni": ["lattosio"],
-        "vegetariano": true,
-        "suggerimenti": "Gelato artigianale fatto in casa!"
-      }
-    ],
-    "bevande": [
-      {
-        "id": "bev_001",
-        "nome": "Acqua Naturale/Frizzante",
-        "descrizione": "Bottiglia 1L",
-        "prezzo": 2.50,
-        "allergeni": []
-      },
-      {
-        "id": "bev_002",
-        "nome": "Vino della Casa",
-        "descrizione": "Rosso o bianco, calice o caraffa (0.5L)",
-        "prezzo": 4.00,
-        "allergeni": ["solfiti"],
-        "suggerimenti": "Il nostro rosso si abbina perfettamente con i primi al ragù!"
-      },
-      {
-        "id": "bev_003",
-        "nome": "Birra Artigianale",
-        "descrizione": "Birra locale, 33cl",
-        "prezzo": 5.00,
-        "allergeni": ["glutine"]
-      },
-      {
-        "id": "bev_004",
-        "nome": "Caffè Espresso",
-        "descrizione": "Caffè italiano",
-        "prezzo": 1.50,
-        "allergeni": []
-      },
-      {
-        "id": "bev_005",
-        "nome": "Limoncello",
-        "descrizione": "Limoncello artigianale",
-        "prezzo": 3.50,
-        "allergeni": [],
-        "suggerimenti": "Fatto in casa con limoni di Sorrento, perfetto per il digestivo!"
-      }
-    ]
-  }
+  "ristorante": "MAMA Arts & Bistrot",
+  "edizione": "Luglio 2025",
+  "luogo": "Porretta Terme",
+  "valuta": "EUR",
+  "note_generali": [
+    "Bistrot: 12:00–15:00 e 19:00–22:30",
+    "In caso di allergie/intolleranze informare il personale; tabella allergeni disponibile.",
+    "Cottura uova per colazione internazionale: alla coque, barzotte, sode.",
+    "Alcuni ingredienti soggetti a disponibilità (es. estratti)."
+  ],
+  "allergeni_legend": {
+    "1": "Cereali con glutine",
+    "2": "Crostacei",
+    "3": "Uova",
+    "4": "Pesce",
+    "5": "Arachidi",
+    "6": "Soia",
+    "7": "Latte/lattosio",
+    "8": "Frutta a guscio",
+    "9": "Sedano",
+    "10": "Senape",
+    "11": "Sesamo",
+    "12": "Anidride solforosa/solfiti",
+    "13": "Lupini",
+    "14": "Molluschi"
+  },
+  "sezioni": [
+    {
+      "nome": "Caffè filtro",
+      "voci": [
+        { "nome": "Caffè Filtro V60", "prezzo": 5.0, "allergeni": [] },
+        { "nome": "French Press", "prezzo": 5.0, "allergeni": [] }
+      ]
+    },
+    {
+      "nome": "Colazione e merenda",
+      "voci": [
+        { "nome": "Pane, vino e zucchero", "prezzo": 3.5, "allergeni": [1,7] },
+        { "nome": "Pane e Nutella", "prezzo": 4.5, "allergeni": [1,7,8] },
+        { "nome": "Pane, burro e marmellata (a scelta)", "prezzo": 4.5, "allergeni": [1,7,12] },
+        {
+          "nome": "Yogurt bianco con frutta fresca, secca e miele",
+          "taglie": [
+            { "nome": "piccolo", "prezzo": 3.5 },
+            { "nome": "grande", "prezzo": 5.0 }
+          ],
+          "allergeni": [1,7,8,11,12]
+        },
+        {
+          "nome": "Yogurt bianco con caramello, frollini e nocciole",
+          "taglie": [
+            { "nome": "piccolo", "prezzo": 3.5 },
+            { "nome": "grande", "prezzo": 5.0 }
+          ],
+          "allergeni": [1,7,8,11,12]
+        },
+        { "nome": "Açai bowl con granola e frutta fresca", "prezzo": 5.0, "allergeni": [1,5,7,8,11,12] },
+        {
+          "nome": "Pancakes e Waffles",
+          "prezzo": 8.0,
+          "allergeni": [1,3,5,7,8,12],
+          "varianti": [
+            "Sciroppo d’acero e frutta fresca",
+            "Yogurt, miele e frutta fresca",
+            "Nutella e frutti rossi",
+            "Burro di arachidi, banana, cocco e miele",
+            "Caramello, noci e zucchero a velo",
+            "Riccioli di burro e marmellata a scelta",
+            "Crema pasticcera e frutta fresca",
+            "Nutella, banana e zucchero a velo",
+            "Banana pancakes"
+          ]
+        },
+        {
+          "nome": "La Colazione del MAMA",
+          "prezzo": 12.0,
+          "descrizione": "Pancake a scelta, yogurt piccolo, spremuta d’arancia, espresso e acqua",
+          "allergeni": [1,3,5,6,7,8,9,11,12]
+        },
+        {
+          "nome": "Tête à Tête (per due persone)",
+          "prezzo": 29.5,
+          "descrizione": "2 yogurt piccoli, cestino di pane con burro e marmellata, selezione di salumi e formaggi, 2 mini pain au chocolat, 2 spremute piccole, 2 flûte di prosecco",
+          "allergeni": [1,3,5,6,7,8,9,11,12]
+        },
+        {
+          "nome": "Colazione Internazionale",
+          "prezzo": 15.0,
+          "descrizione": "Salmone affumicato, uovo, formaggio spalmabile, cestino di pane, formaggi misti, pomodorini, acqua e caffè americano",
+          "allergeni": [1,3,4,5,6,7,8,9,11,12],
+          "note": "Cottura uova a scelta"
+        },
+        {
+          "nome": "Il Brunch",
+          "prezzo": 25.0,
+          "descrizione": "Salmone affumicato, formaggio spalmabile, cestino di pane, formaggi misti, pomodorini, 1 pancake con sciroppo d’acero, yogurt piccolo, spremuta, acqua e caffè espresso",
+          "allergeni": [1,3,4,5,6,7,8,9,11,12]
+        },
+        { "nome": "Pain Perdu", "prezzo": 5.0, "descrizione": "Pane tostato con zucchero, burro, frutta fresca e yogurt", "allergeni": [1,7] }
+      ]
+    },
+    {
+      "nome": "Estratti e spremute",
+      "voci": [
+        { "nome": "Estratto di frutta e verdure", "prezzo": 5.0, "allergeni": [9], "note": "Secondo disponibilità" },
+        { "nome": "Spremuta di Arancia / Pompelmo", "prezzo": 4.0, "allergeni": [] }
+      ]
+    },
+    {
+      "nome": "Caffetteria",
+      "voci": [
+        { "nome": "Espresso (Il Rosso: 70% arabica, 30% robusta)", "prezzo": 1.3, "allergeni": [] },
+        { "nome": "Espresso macchiato", "prezzo": 1.3, "allergeni": [] },
+        { "nome": "Espresso Monorigine (100% Arabica)", "prezzo": 2.5, "allergeni": [] },
+        { "nome": "Espresso decaffeinato", "prezzo": 1.3, "allergeni": [] },
+        { "nome": "Cappuccino", "prezzo": 1.6, "allergeni": [6,7] },
+        { "nome": "Pink Me Up!", "prezzo": 4.0, "allergeni": [6,7] },
+        { "nome": "Caffè Americano", "prezzo": 1.5, "allergeni": [] },
+        { "nome": "Macchiatone", "prezzo": 1.5, "allergeni": [6,7] },
+        { "nome": "Marocchino", "prezzo": 3.0, "allergeni": [6,7,8] },
+        { "nome": "Pistacchino", "prezzo": 3.0, "allergeni": [6,7,8] },
+        { "nome": "Nocciolino", "prezzo": 3.0, "allergeni": [6,7,8] },
+        { "nome": "Mocaccino", "prezzo": 4.0, "allergeni": [6,7,8] },
+        {
+          "nome": "Orzo / Ginseng",
+          "taglie": [
+            { "nome": "piccolo", "prezzo": 1.5 },
+            { "nome": "grande", "prezzo": 2.0 }
+          ],
+          "allergeni": [1,6,7]
+        },
+        { "nome": "Cioccolata piemontese calda", "prezzo": 3.0, "allergeni": [6,7,8] },
+        { "nome": "Caffè Latte", "prezzo": 2.0, "allergeni": [6,7] },
+        { "nome": "Matcha Latte", "prezzo": 5.0, "allergeni": [6,7] },
+        { "nome": "Latte Macchiato", "prezzo": 2.0, "allergeni": [6,7] },
+        { "nome": "Caramel Macchiato", "prezzo": 4.0, "allergeni": [5,6,7,8] },
+        { "nome": "Caffè Brulé", "prezzo": 4.0, "allergeni": [5,6,7,8] }
+      ],
+      "opzioni_latte": ["latte di soia", "latte di mandorla", "latte lactose-free"]
+    },
+    {
+      "nome": "Il piacere del vero tè",
+      "voci": [
+        { "nome": "Bai Mu Dan Bio (tè bianco)", "prezzo": 3.0, "infusione": { "minuti": "6-8", "temperatura_c": 70 } },
+        { "nome": "Flowery Orange Pekoe Ceylon (tè nero)", "prezzo": 3.0, "infusione": { "minuti": "2-3", "temperatura_c": 90 } },
+        { "nome": "Mistero del Giappone (tè verdi giapponesi con fragole e ribes rossi)", "prezzo": 3.0, "infusione": { "minuti": "2-3", "temperatura_c": 70 } },
+        { "nome": "Amelie (tè verde+bianco, albicocca, calendula, rosa, verbasco)", "prezzo": 3.0, "infusione": { "minuti": "2-3", "temperatura_c": 70 } },
+        { "nome": "Jasmine Imperiale (tè verde al gelsomino)", "prezzo": 4.0, "infusione": { "minuti": "6", "temperatura_c": 70 } },
+        { "nome": "Milky Oolong", "prezzo": 4.0, "infusione": { "minuti": "4", "temperatura_c": 85 } },
+        { "nome": "Oolong al caramello", "prezzo": 4.0, "infusione": { "minuti": "4", "temperatura_c": 85 } },
+        { "nome": "Peperino (tè neri, pepe rosa, mandarino)", "prezzo": 3.0, "infusione": { "minuti": "5", "temperatura_c": 90 } },
+        { "nome": "Anonimo Veneziano (tè nero, cioccolato, cacao, arancio, cardamomo, mela, pepe rosa)", "prezzo": 4.0, "infusione": { "minuti": "3-4", "temperatura_c": 90 } },
+        { "nome": "Infuso Foresta Nera (karkadè e frutti di bosco)", "prezzo": 3.0, "infusione": { "minuti": "5", "temperatura_c": 90 } },
+        { "nome": "Tisana Ayurvedica (zenzero, liquirizia, cannella, cardamomo, finocchio, arancia)", "prezzo": 3.0, "infusione": { "minuti": "5", "temperatura_c": 90 } },
+        { "nome": "Lapsang Souchong (tè nero affumicato)", "prezzo": 4.0, "infusione": { "minuti": "5", "temperatura_c": 90 } },
+        { "nome": "Tè Matcha (cerimoniale)", "prezzo": 5.0 }
+      ]
+    },
+    {
+      "nome": "Bistrot – Portate principali",
+      "voci": [
+        { "nome": "Zuppa di cipolla in crosta di Parmigiano Reggiano (V) con crostini", "prezzo": 14.0, "allergeni": [1,7,9] },
+        { "nome": "Risotto con bisque, corallo e gambero rosso", "prezzo": 18.0, "descrizione": "Riso del delta del Po, fondo di crostacei, polvere di corallo, tartare di gambero", "allergeni": [2,4,7,9,14] },
+        { "nome": "Mama Che Pacchero! (V)", "prezzo": 15.0, "descrizione": "Salsa ai pomodori fatta in casa, basilico, burro e Parmigiano Reggiano 24 mesi", "allergeni": [1,7,9] },
+        { "nome": "Mezze maniche alla Norma (V)", "prezzo": 15.0, "descrizione": "Melanzane, pomodori arrosto, basilico, ricotta salata", "allergeni": [1,7,9] },
+        { "nome": "Pici cacio, pepe e tartare di gambero rosso", "prezzo": 18.0, "descrizione": "Pici freschi, pecorino romano, pepe Timut e crudo di gambero rosso", "allergeni": [1,2,7] },
+        { "nome": "Spaghetti alla chitarra alle vongole", "prezzo": 18.0, "descrizione": "Spaghetti freschi alla chitarra, prezzemolo, vongole veraci", "allergeni": [1,14] },
+        { "nome": "Filetto di ombrina al limone e salsa Bernese", "prezzo": 20.0, "descrizione": "160 g Ombrina Mauritius, beurre au citron, bernese", "allergeni": [1,3,4,7,12] },
+        { "nome": "Trancio di Baccalà taglio pil pil", "prezzo": 24.0, "descrizione": "180 g filetto di baccalà, porri, patate Ratte, burro chiarificato ai piselli, chips di baccalà", "allergeni": [4,7] },
+        { "nome": "Branzino in crosta di sale (per due persone, 45’ cottura)", "prezzo": 55.0, "descrizione": "Branzino intero 1,2 kg con contorni e salse", "allergeni": [1,3,4,7,14] },
+        { "nome": "Il Vitello alla Milanese, con osso (per due persone)", "prezzo": 45.0, "descrizione": "500 g vitello fritto in burro chiarificato, rucola, pomodorini, Parmigiano", "allergeni": [1,7] },
+        { "nome": "Filetto di Fassona glassato", "prezzo": 26.0, "descrizione": "160 g Fassona, fondo bruno, riduzione al caffè, patata viola", "allergeni": [9] },
+        { "nome": "Cotoletta di cavolfiore (V)", "prezzo": 20.0, "descrizione": "Cavolfiore marinato, salsa fatta in casa, salsa verde, tuorlo marinato", "allergeni": [1,6,7,12] },
+        { "nome": "La battuta di Fassona", "prezzo": 24.0, "descrizione": "200 g battuta al coltello con condimenti a parte", "allergeni": [3,5,8,10,12] }
+      ]
+    },
+    {
+      "nome": "Bistrot – Contorni",
+      "voci": [
+        { "nome": "Patate al tartufo e Parmigiano", "prezzo": 7.0, "allergeni": [7] },
+        { "nome": "Ceci neri DOP, aglio e salvia", "prezzo": 5.0, "allergeni": [] },
+        { "nome": "Verdure di stagione spadellate", "prezzo": 5.0, "allergeni": [] },
+        { "nome": "Scarola", "prezzo": 5.0, "allergeni": [] },
+        { "nome": "Verdure di stagione gratin", "prezzo": 5.0, "allergeni": [1] }
+      ]
+    },
+    {
+      "nome": "Insalate, antipasti freddi e caldi",
+      "voci": [
+        { "nome": "Caesar", "prezzo": 14.0, "descrizione": "Iceberg, Parmigiano Reggiano, Caesar dressing, filetti di pollo, crostini", "allergeni": [1,3,6,7,12] },
+        { "nome": "Granchio e avocado", "prezzo": 16.0, "descrizione": "Rucola, polpa di granchio, avocado, pomodori, coriandolo, cipolla rossa di Tropea", "allergeni": [2] },
+        { "nome": "Lenticchie (V)", "prezzo": 15.0, "descrizione": "Lenticchie, nocciole, noci pecan, melograno, cranberries, mela, caprino, mostarda", "allergeni": [7,8,10,12] },
+        { "nome": "Il Polpo alla griglia", "prezzo": 18.0, "descrizione": "Panko alle olive, topinambur, maionese di mare", "allergeni": [1,2,4,7,14] },
+        { "nome": "Cappesante scottate", "prezzo": 18.0, "descrizione": "Capesante atlantiche, glissand di finocchio e sambuca, mela verde e corallo", "allergeni": [7,9,14] },
+        { "nome": "Orto (V)", "prezzo": 15.0, "descrizione": "Croccantezze di verdure con chips di polenta", "allergeni": [7,8,9,12] },
+        { "nome": "Carpaccio di rapa rossa (V)", "prezzo": 16.0, "descrizione": "Caprino, rucola, nocciole, vinaigrette agli agrumi", "allergeni": [5,7,8,12] },
+        { "nome": "Il Manzo Carciofato", "prezzo": 18.0, "descrizione": "Carpaccio di Fassona, crema di carciofi sardi, pecorino di Fossa, timo, lemon dressing", "allergeni": [7] },
+        { "nome": "Tataki di Wagyu A5", "prezzo": 22.0, "descrizione": "Salsa ponzu e crostino con burro tartufato", "allergeni": [1,6,7] },
+        { "nome": "Katsu Sando", "prezzo": 20.0, "descrizione": "Pane al latte, etrusca di maiale, cavolo bianco, panko, senape di Digione", "allergeni": [1,5,6,7,8,9,10,11,12] },
+        { "nome": "Bao con pulled pork", "prezzo": 18.0, "descrizione": "Panino al vapore, pulled pork, maionese agli agrumi, cavolo viola, cetriolo, arachidi", "allergeni": [1,3,5,6,7,8,9,10,12] }
+      ]
+    },
+    {
+      "nome": "Pizze Gourmet",
+      "note": "Impasto con Fior di latte salvo dove indicato",
+      "voci": [
+        { "nome": "Fior di latte, erba cipollina, tartufo fresco stagionale", "prezzo": 25.0, "allergeni": [1,7,8,12] },
+        { "nome": "Salsa al pomodoro e ricotta, basilico, Parmigiano Reggiano 24 mesi", "prezzo": 18.0, "allergeni": [1,7,8,12] },
+        { "nome": "Fior di latte, erborinato di capra, timo, pere e noci", "prezzo": 18.0, "allergeni": [1,7,8,12] },
+        { "nome": "Burrata, timo, porcini e Pata Negra", "prezzo": 30.0, "allergeni": [1,7,8,12] }
+      ]
+    },
+    {
+      "nome": "Raw Bar",
+      "voci": [
+        { "nome": "Tartare di tonno rosso", "prezzo": 18.0, "descrizione": "Tonno rosso Saku Akami, mango, maionese al tartufo, wasabi e sesamo", "allergeni": [4,6,11,12] },
+        { "nome": "Carpaccio di Otoro", "prezzo": 22.0, "descrizione": "Sale di Maldon, chips di cipolla, ponzu", "allergeni": [4,6,11,12] },
+        { "nome": "Croissant cacio e pepe con gambero crudo", "prezzo": 16.0, "descrizione": "Tartare di gambero rosso, salsa cocktail", "allergeni": [1,2,12] },
+        { "nome": "Carpaccio di ombrina", "prezzo": 16.0, "descrizione": "Prezzemolo, nocciole, salsa al limone", "allergeni": [4,7,8,12] },
+        { "nome": "Gran cocktail di gamberi", "prezzo": 24.0, "descrizione": "160 g gamberi giganti, pickles, salsa cocktail", "allergeni": [2,3,9,12] },
+        {
+          "nome": "Ostriche",
+          "prezzo": null,
+          "descrizione": "Chiedere disponibilità del giorno. Mezza dozzina / dozzina: prezzo di mercato.",
+          "allergeni": [12,14]
+        },
+        {
+          "nome": "Atlantide (torre di crudi per 4)",
+          "prezzo": 100.0,
+          "descrizione": "12 ostriche, 4 gamberi giganti, ceviche di ombrina, capesante, granchio, sashimi di tonno; crostini con burro, salsa mignonette, maionese agli agrumi",
+          "allergeni": [1,2,3,4,6,8,12,14]
+        }
+      ]
+    }
+  ]
 }
