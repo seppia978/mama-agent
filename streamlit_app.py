@@ -180,16 +180,34 @@ def display_menu(menu: dict):
 
 
 def display_order_summary(agent: WaiterAgent):
-    """Display current order summary"""
+    """Display current order summary with item removal"""
     order = agent.get_order()
-    summary_text = order.get_summary()
+    
     if order.items or order.special_requests:
-        st.markdown(f"""
-            <div class="order-summary">
-                <h4>📝 Il Tuo Ordine</h4>
-                {summary_text.replace('\n', '<br>')}
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="order-summary"><h4>📝 Il Tuo Ordine</h4></div>', unsafe_allow_html=True)
+        
+        # Display each item with remove button
+        for idx, order_item in enumerate(order.items):
+            item = order_item["item"]
+            qty = order_item["quantity"]
+            col1, col2 = st.columns([4, 1])
+            
+            with col1:
+                item_text = f"{item['nome']} x{qty} (€{item['prezzo'] * qty:.2f})"
+                if item.get('custom'):
+                    item_text += " ⚠️"
+                st.write(item_text)
+            
+            with col2:
+                if st.button("❌", key=f"remove_{idx}_{item.get('id', item['nome'])}"):
+                    item_id = item.get('id', item['nome'])
+                    agent.order.remove_item(item_id)
+                    st.rerun()
+        
+        # Display total
+        st.markdown(f"**Totale: €{order.total:.2f}**")
+        
+        # Send order button
         if st.button("✅ Invia Ordine"):
             st.success("Ordine inviato alla cucina! 🍽️")
             agent.reset_order()
