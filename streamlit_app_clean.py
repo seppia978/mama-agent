@@ -310,14 +310,7 @@ def main():
     button_key = f"suggestion_{hour}"
     if st.button(f"💡 {advice}", key=button_key):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Generate response immediately
-        with st.spinner("🧑‍🍳 Il cameriere sta pensando..."):
-            try:
-                response = agent.chat(prompt)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-            except Exception as e:
-                error_msg = f"❌ Errore: {str(e)}"
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        st.session_state.thinking = True
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -351,19 +344,23 @@ def main():
     user_input = st.chat_input("Scrivi qui il tuo messaggio...")
     
     if user_input:
-        # Add user message to chat
+        # Add user message to chat immediately
         st.session_state.messages.append({"role": "user", "content": user_input})
-        
-        # Get response from agent
+        st.session_state.thinking = True
+        st.rerun()
+    
+    # Handle thinking after message is displayed
+    if st.session_state.get('thinking', False):
         with st.spinner("🧑‍🍳 Il cameriere sta pensando..."):
             try:
-                response = agent.chat(user_input)
+                # Get the last user message
+                last_user_message = st.session_state.messages[-1]["content"]
+                response = agent.chat(last_user_message)
                 st.session_state.messages.append({"role": "assistant", "content": response})
             except Exception as e:
                 error_msg = f"❌ Errore: {str(e)}"
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
-        
-        # Rerun to update the chat
+        st.session_state.thinking = False
         st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
