@@ -389,29 +389,40 @@ def main():
                     print(f"👁️ [SUPERVISOR] Item estratti: {analysis['extracted_items']}")
                     print(f"👁️ [SUPERVISOR] Compliance menu: {analysis['menu_compliance']}")
                     
+                    # If items were extracted, add them to the order
+                    if analysis["is_order"] and analysis["extracted_items"] and analysis["menu_compliance"]:
+                        for item_name in analysis["extracted_items"]:
+                            menu_item = supervisor._find_menu_item_by_name(item_name)
+                            if menu_item:
+                                # Check if not already in order
+                                item_id = menu_item.get('id', menu_item['nome'])
+                                if not any(order_item["item"].get("id") == item_id or order_item["item"]["nome"].lower() == menu_item["nome"].lower() for order_item in waiter.order.items):
+                                    waiter.order.add_item(menu_item)
+                                    print(f"✅ [ORDER] Aggiunto: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f}")
+
                     if analysis["needs_clarification"]:
                         print(f"👁️ [SUPERVISOR] Richiede chiarimento: {analysis['clarification_type']}")
                         print(f"👁️ [SUPERVISOR] Messaggio chiarimento: {analysis['clarification_message']}")
-                        
+
                         if analysis["suggested_items"]:
                             print(f"👁️ [SUPERVISOR] Suggerimenti: {[s['suggested'] for s in analysis['suggested_items']]}")
-                        
+
                         # Have waiter generate clarification response
                         if analysis["clarification_type"] == "order_intent":
                             clarification_prompt = f"""
                             L'utente ha detto: "{last_user_message}"
-                            
+
                             Non sono sicuro se voglia ordinare. Chiedigli gentilmente se intende effettuare un'ordinazione.
                             Mantieni un tono amichevole e professionale.
                             """
                         else:  # item_confirmation
                             clarification_prompt = f"""
                             L'utente ha detto: "{last_user_message}"
-                            
-                            Ho trovato alcuni elementi che potrebbero non essere nel menu. 
+
+                            Ho trovato alcuni elementi che potrebbero non essere nel menu.
                             Chiedi conferma per questi suggerimenti: {analysis["clarification_message"]}
                             """
-                        
+
                         print(f"🧑‍🍳 [WAITER] Genero risposta chiarimento per: {analysis['clarification_type']}")
                         response = waiter.chat(clarification_prompt)
                         print(f"🧑‍🍳 [WAITER] Risposta chiarimento: {response[:100]}...")

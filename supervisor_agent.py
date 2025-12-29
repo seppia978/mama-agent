@@ -41,7 +41,7 @@ class SupervisorAgent:
 
         # Step 2: If it's likely an order, extract and verify items
         if result["is_order"]:
-            extracted_items = self._extract_order_items(user_message)
+            extracted_items = self._extract_order_items(user_message, conversation_history)
             result["extracted_items"] = extracted_items
 
             # Check if items exist in menu or conversation history
@@ -112,81 +112,154 @@ class SupervisorAgent:
 
         return base_prob
 
-    def _extract_order_items(self, message: str) -> List[str]:
+    def _extract_order_items(self, message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> List[str]:
         """
-        Extract order items using comprehensive pattern matching.
+        Extract order items dynamically from menu and conversation history.
         """
         items = []
         message_lower = message.lower()
 
-        # Direct item name patterns (most specific first)
-        direct_patterns = [
-            r'\bcarbonara\b',
-            r'\bmargherita\b',
-            r'\bdiavola\b',
-            r'\bamericana\b',
-            r'\bnapoli\b',
-            r'\bmarinara\b',
-            r'\bquattro\s+formaggi\b',
-            r'\bcacio\s+e\s+pepe\b',
-            r'\bpici\s+cacio\s+pepe\b',
-            r'\btartare\s+gambero\b',
-            r'\binsalata\s+mare\b',
-            r'\bbaccala\b',
-            r'\bbranzino\b',
-            r'\bpolenta\b',
-            r'\bantipasto\b',
-            r'\bbruschetta\b',
-            r'\btiramisu\b',
-            r'\bgelato\b',
-            r'\bcannolo\b',
-        ]
+        # Step 1: Build dynamic patterns from actual menu items
+        menu_items = self._get_all_menu_items()
 
-        for pattern in direct_patterns:
-            if re.search(pattern, message_lower):
-                match = re.search(pattern, message_lower)
-                if match:
-                    item = match.group(0).strip()
-                    if item not in items:
-                        items.append(item)
+        for menu_item in menu_items:
+            item_name = menu_item["nome"].lower()
 
-        # Category + modifier patterns
-        category_patterns = [
-            (r'\binsalata\s+(?:di\s+)?(\w+)', 'insalata'),
-            (r'\bpasta\s+(?:alla\s+)?(\w+)', 'pasta'),
-            (r'\bpizza\s+(\w+)', 'pizza'),
-            (r'\bvino\s+(\w+)', 'vino'),
-            (r'\bbirra\s*(\w*)', 'birra'),
-            (r'\bcaffè\s*(\w*)', 'caffè'),
-            (r'\bdolce\s+(\w+)', 'dolce'),
-        ]
+            # Check for exact match
+            if item_name in message_lower:
+                if item_name not in items:
+                    items.append(item_name)
+                continue
 
-        for pattern, category in category_patterns:
-            matches = re.findall(pattern, message_lower)
-            for match in matches:
-                if isinstance(match, tuple):
-                    modifier = ' '.join(match).strip()
-                else:
-                    modifier = match.strip()
-                if modifier:
-                    item = f"{category} {modifier}"
-                else:
-                    item = category
+            # Check for partial match (key words from item name)
+            item_words = [w for w in item_name.split() if len(w) > 3]
+            # Exclude common words
+            common_words = {'alla', 'alle', 'dello', 'della', 'degli', 'delle', 'con', 'senza', 'piccolo', 'grande'}
+            item_words = [w for w in item_words if w not in common_words]
+
+            for word in item_words:
+                if re.search(r'\b' + re.escape(word) + r'\b', message_lower):
+                    # Found a key word - add the full menu item name
+                    if item_name not in items:
+                        items.append(item_name)
+                    break
+
+        # Step 2: Check conversation history for items mentioned by waiter
+        if conversation_history and not items:
+            # User might be referring to something the waiter suggested
+            history_items = self._extract_items_from_conversation_context(message_lower, conversation_history)
+            for item in history_items:
                 if item not in items:
                     items.append(item)
 
-        # Single word items
-        single_words = [
-            'spaghetti', 'penne', 'fusilli', 'risotto', 'lasagna',
-            'acqua', 'bibita', 'aperitivo', 'digestivo'
-        ]
+        # Step 3: Handle generic references (il, la, lo, quello, questa, etc.)
+        generic_refs = ['lo', 'la', 'li', 'le', 'quello', 'quella', 'questo', 'questa', 'quelli', 'quelle']
+        has_generic_ref = any(re.search(r'\b' + ref + r'\b', message_lower) for ref in generic_refs)
 
-        for word in single_words:
-            if re.search(r'\b' + word + r'\b', message_lower):
-                if word not in items:
-                    items.append(word)
+        if has_generic_ref and not items and conversation_history:
+            # Look for last mentioned item in waiter's response
+            last_mentioned = self._get_last_mentioned_item_from_history(conversation_history)
+            if last_mentioned and last_mentioned not in items:
+                items.append(last_mentioned)
 
         return items
+
+    def _get_all_menu_items(self) -> List[Dict[str, Any]]:
+        """
+        Get all items from the menu as a flat list.
+        """
+        all_items = []
+        sections = self.menu.get("sezioni", [])
+
+        for section in sections:
+            for voce in section.get("voci", []):
+                item = voce.copy()
+                item["sezione"] = section["nome"]
+                all_items.append(item)
+
+        return all_items
+
+    def _find_menu_item_by_name(self, item_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a menu item by name (exact or partial match).
+        Returns the full menu item dict with id and prezzo.
+        """
+        item_name_lower = item_name.lower()
+
+        sections = self.menu.get("sezioni", [])
+        for section in sections:
+            for voce in section.get("voci", []):
+                menu_item_name = voce.get("nome", "").lower()
+
+                # Exact match
+                if menu_item_name == item_name_lower:
+                    result = voce.copy()
+                    result["sezione"] = section["nome"]
+                    if "id" not in result:
+                        result["id"] = result["nome"]
+                    return result
+
+                # Partial match (item_name is contained in menu item or vice versa)
+                if item_name_lower in menu_item_name or menu_item_name in item_name_lower:
+                    result = voce.copy()
+                    result["sezione"] = section["nome"]
+                    if "id" not in result:
+                        result["id"] = result["nome"]
+                    return result
+
+                # Key word match
+                item_words = [w for w in item_name_lower.split() if len(w) > 3]
+                for word in item_words:
+                    if word in menu_item_name:
+                        result = voce.copy()
+                        result["sezione"] = section["nome"]
+                        if "id" not in result:
+                            result["id"] = result["nome"]
+                        return result
+
+        return None
+
+    def _extract_items_from_conversation_context(self, message_lower: str, conversation_history: List[Dict[str, str]]) -> List[str]:
+        """
+        Extract items that were mentioned in conversation and user is now ordering.
+        """
+        items = []
+
+        # Get dishes mentioned by waiter in recent messages
+        mentioned_dishes = self._extract_mentioned_dishes_from_history(conversation_history)
+
+        # Check if user message references any of these
+        for dish in mentioned_dishes:
+            dish_lower = dish.lower()
+            dish_words = [w for w in dish_lower.split() if len(w) > 3]
+
+            # Check if any significant word from the dish is in the user message
+            for word in dish_words:
+                if re.search(r'\b' + re.escape(word) + r'\b', message_lower):
+                    if dish_lower not in items:
+                        items.append(dish_lower)
+                    break
+
+        return items
+
+    def _get_last_mentioned_item_from_history(self, conversation_history: List[Dict[str, str]]) -> Optional[str]:
+        """
+        Get the last item mentioned by the waiter in conversation.
+        Useful when user says "lo prendo", "quello", etc.
+        """
+        # Look through assistant messages in reverse order
+        for message in reversed(conversation_history):
+            if message.get("role") == "assistant":
+                content = message.get("content", "").lower()
+
+                # Find menu items mentioned in this message
+                for section in self.menu.get("sezioni", []):
+                    for item in section.get("voci", []):
+                        dish_name = item.get("nome", "").lower()
+                        if dish_name in content and len(dish_name) > 3:
+                            return dish_name
+
+        return None
 
     def _check_menu_compliance(self, extracted_items: List[str], conversation_history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """
