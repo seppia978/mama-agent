@@ -70,47 +70,62 @@ class SupervisorAgent:
         """
         message_lower = message.lower()
 
-        # High probability indicators
-        high_prob_words = ['prendo', 'vorrei', 'ordino', 'portami', 'dammi', 'voglio', 'consigliami', 'raccomanda', 'cosa prendi']
-        medium_prob_words = ['pizza', 'pasta', 'spaghetti', 'vino', 'birra', 'caffè', 'dolce', 'menu', 'ordinare', 'cena', 'pranzo']
-        question_words = ['che', 'quale', 'cosa']
+        # High probability indicators (explicit order words)
+        high_prob_words = ['prendo', 'vorrei', 'ordino', 'portami', 'dammi', 'voglio', 'prendiamo', 'portiamo']
 
-        # Count indicators
-        high_count = sum(1 for word in high_prob_words if word in message_lower)
-        medium_count = sum(1 for word in medium_prob_words if word in message_lower)
-        question_count = sum(1 for word in question_words if word in message_lower)
+        # Polite order patterns ("una X grazie", "un Y per favore")
+        polite_endings = ['grazie', 'per favore', 'perfavore', 'prego', 'per me', 'per cortesia']
 
-        # Rule-based probability
-        if high_count > 0:
-            base_prob = 0.9
-        elif medium_count > 1:
-            base_prob = 0.7
-        elif question_count > 0 and medium_count > 0:
-            base_prob = 0.4  # Questions about food are not orders
-        elif medium_count > 0:
-            base_prob = 0.6
-        else:
-            base_prob = 0.1
+        # Article + item patterns (indicates ordering)
+        article_patterns = [r'\bun\b', r'\buna\b', r'\buno\b', r'\bdei\b', r'\bdelle\b', r'\bdue\b', r'\btre\b']
+
+        # Question patterns (NOT orders)
+        question_patterns = ['che cos', 'cos\'è', 'cosa è', 'quale', 'quali', 'avete', 'c\'è', 'ci sono', 'che tipo', 'come']
+
+        # Check for question patterns first
+        is_question = any(q in message_lower for q in question_patterns)
+        if is_question and '?' in message_lower:
+            return 0.1
+
+        # Check for explicit order words
+        has_high_prob = any(word in message_lower for word in high_prob_words)
+        if has_high_prob:
+            return 0.9
+
+        # Check for polite order pattern: article + something + polite ending
+        has_article = any(re.search(p, message_lower) for p in article_patterns)
+        has_polite = any(p in message_lower for p in polite_endings)
+
+        if has_article and has_polite:
+            return 0.85  # "Una orto grazie" pattern
+
+        # Check if message contains a menu item (could be ordering)
+        menu_items = self._get_all_menu_items()
+        message_has_menu_item = False
+        for item in menu_items:
+            item_name = item["nome"].lower()
+            # Check for key words from item name
+            item_words = [w for w in item_name.split() if len(w) > 3]
+            common_words = {'alla', 'alle', 'dello', 'della', 'con', 'senza'}
+            item_words = [w for w in item_words if w not in common_words]
+            if any(re.search(r'\b' + re.escape(w) + r'\b', message_lower) for w in item_words):
+                message_has_menu_item = True
+                break
+
+        # If has article + menu item, likely an order
+        if has_article and message_has_menu_item:
+            return 0.8
+
+        # If has polite ending + menu item, likely an order
+        if has_polite and message_has_menu_item:
+            return 0.8
 
         # Special handling for recommendation requests
         if 'consigliami' in message_lower or 'raccomanda' in message_lower or 'cosa consigli' in message_lower:
-            base_prob = 0.3  # Recommendations are not orders
+            return 0.3
 
-        # Use LLM only for borderline cases (0.3-0.7)
-        if 0.3 <= base_prob <= 0.7:
-            try:
-                prompt = f'Order probability for: "{message}"\nReturn only 0.0-1.0:'
-                messages = [{"role": "user", "content": prompt}]
-                response = self.llm_provider.generate(messages, max_tokens=5)
-                match = re.search(r'(\d+\.?\d*)', response.strip())
-                if match:
-                    llm_prob = float(match.group(1))
-                    # Blend rule-based and LLM
-                    return (base_prob * 0.7) + (llm_prob * 0.3)
-            except:
-                pass
-
-        return base_prob
+        # Default low probability
+        return 0.1
 
     def _extract_order_items(self, message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> List[str]:
         """
