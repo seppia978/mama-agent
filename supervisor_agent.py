@@ -66,66 +66,58 @@ class SupervisorAgent:
 
     def _estimate_order_probability(self, message: str) -> float:
         """
-        Estimate order probability using rule-based approach with LLM fallback.
+        Estimate order probability using LLM (GPT) for natural language understanding.
+        Falls back to rule-based only for clear-cut cases.
         """
         message_lower = message.lower()
 
-        # High probability indicators (explicit order words)
-        high_prob_words = ['prendo', 'vorrei', 'ordino', 'portami', 'dammi', 'voglio', 'prendiamo', 'portiamo']
-
-        # Polite order patterns ("una X grazie", "un Y per favore")
-        polite_endings = ['grazie', 'per favore', 'perfavore', 'prego', 'per me', 'per cortesia']
-
-        # Article + item patterns (indicates ordering)
-        article_patterns = [r'\bun\b', r'\buna\b', r'\buno\b', r'\bdei\b', r'\bdelle\b', r'\bdue\b', r'\btre\b']
-
-        # Question patterns (NOT orders)
-        question_patterns = ['che cos', 'cos\'è', 'cosa è', 'quale', 'quali', 'avete', 'c\'è', 'ci sono', 'che tipo', 'come']
-
-        # Check for question patterns first
-        is_question = any(q in message_lower for q in question_patterns)
-        if is_question and '?' in message_lower:
+        # Quick rejection: clear questions
+        if '?' in message_lower and any(q in message_lower for q in ['che cos', 'cos\'è', 'quale', 'quali', 'avete', 'c\'è']):
             return 0.1
 
-        # Check for explicit order words
-        has_high_prob = any(word in message_lower for word in high_prob_words)
-        if has_high_prob:
-            return 0.9
-
-        # Check for polite order pattern: article + something + polite ending
-        has_article = any(re.search(p, message_lower) for p in article_patterns)
-        has_polite = any(p in message_lower for p in polite_endings)
-
-        if has_article and has_polite:
-            return 0.85  # "Una orto grazie" pattern
-
-        # Check if message contains a menu item (could be ordering)
-        menu_items = self._get_all_menu_items()
-        message_has_menu_item = False
-        for item in menu_items:
-            item_name = item["nome"].lower()
-            # Check for key words from item name
-            item_words = [w for w in item_name.split() if len(w) > 3]
-            common_words = {'alla', 'alle', 'dello', 'della', 'con', 'senza'}
-            item_words = [w for w in item_words if w not in common_words]
-            if any(re.search(r'\b' + re.escape(w) + r'\b', message_lower) for w in item_words):
-                message_has_menu_item = True
-                break
-
-        # If has article + menu item, likely an order
-        if has_article and message_has_menu_item:
-            return 0.8
-
-        # If has polite ending + menu item, likely an order
-        if has_polite and message_has_menu_item:
-            return 0.8
-
-        # Special handling for recommendation requests
-        if 'consigliami' in message_lower or 'raccomanda' in message_lower or 'cosa consigli' in message_lower:
+        # Quick rejection: recommendation requests
+        if 'consigliami' in message_lower or 'raccomanda' in message_lower or 'suggeriscimi' in message_lower:
             return 0.3
 
-        # Default low probability
-        return 0.1
+        # Use LLM to understand intent
+        try:
+            prompt = f"""Analizza questo messaggio di un cliente al ristorante e determina se sta ordinando del cibo/bevande.
+
+Messaggio: "{message}"
+
+Rispondi SOLO con un numero da 0.0 a 1.0:
+- 0.0-0.3 = domanda, richiesta info, saluto
+- 0.4-0.6 = incerto, potrebbe essere un ordine
+- 0.7-1.0 = sta chiaramente ordinando qualcosa
+
+Esempi:
+- "Prendo il risotto" → 0.95
+- "Andiamo di carpaccio!" → 0.9
+- "Una caesar grazie" → 0.9
+- "Quello, grazie" → 0.85
+- "Cos'è la carbonara?" → 0.1
+- "Avete vini rossi?" → 0.2
+
+Rispondi SOLO con il numero:"""
+
+            messages = [{"role": "user", "content": prompt}]
+            response = self.llm_provider.generate(messages, max_tokens=10, temperature=0.1)
+
+            # Extract number from response
+            match = re.search(r'(\d+\.?\d*)', response.strip())
+            if match:
+                prob = float(match.group(1))
+                # Clamp to valid range
+                return max(0.0, min(1.0, prob))
+        except Exception as e:
+            print(f"⚠️ [SUPERVISOR] LLM error in order detection: {e}")
+
+        # Fallback: check for explicit order words
+        high_prob_words = ['prendo', 'vorrei', 'ordino', 'portami', 'dammi', 'voglio', 'prendiamo']
+        if any(word in message_lower for word in high_prob_words):
+            return 0.9
+
+        return 0.5  # Uncertain, let it through
 
     def _extract_order_items(self, message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> List[str]:
         """
