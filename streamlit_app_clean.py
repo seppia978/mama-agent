@@ -12,6 +12,7 @@ from datetime import datetime
 
 from llm_provider import create_llm_provider
 from waiter_agent import WaiterAgent
+from guard_agent import GuardAgent
 
 # Load environment variables
 load_dotenv()
@@ -137,7 +138,7 @@ def load_menu(menu_path: str = "menu.json") -> dict:
 
 @st.cache_resource
 def initialize_agent():
-    """Initialize the LLM provider and waiter agent (cached) - Fixed to Ollama with llama3.2:3b"""
+    """Initialize the LLM provider and agents (cached) - Fixed to Ollama with llama3.2:3b"""
     try:
         # Load menu
         menu = load_menu()
@@ -145,10 +146,13 @@ def initialize_agent():
         # Fixed provider: Ollama with llama3.2:3b
         llm_provider = create_llm_provider("ollama", model_name="llama3.2:3b")
         
-        # Initialize waiter agent
-        agent = WaiterAgent(menu, llm_provider)
+        # Initialize guard agent
+        guard = GuardAgent(llm_provider, menu)
         
-        return agent, menu
+        # Initialize waiter agent
+        waiter = WaiterAgent(menu, llm_provider)
+        
+        return {"guard": guard, "waiter": waiter, "menu": menu}
     except Exception as e:
         st.error(f"❌ Errore nell'inizializzazione: {e}")
         st.stop()
@@ -256,16 +260,18 @@ def main():
     
     # Sidebar with menu and order
     with st.sidebar:
-        # st.markdown("## 📖 Menu del Ristorante")
-        # Initialize agent and menu for sidebar
-        if 'agent' not in st.session_state or 'menu' not in st.session_state:
-            with st.spinner("🤖 Inizializzazione cameriere virtuale..."):
-                agent, menu = initialize_agent()
-                st.session_state.agent = agent
-                st.session_state.menu = menu
+        # Initialize agents and menu for sidebar
+        if 'agents' not in st.session_state:
+            with st.spinner("🤖 Inizializzazione agenti virtuali..."):
+                agents = initialize_agent()
+                st.session_state.agents = agents
         
-        agent = st.session_state.agent
-        menu = st.session_state.menu
+        guard = st.session_state.agents['guard']
+        waiter = st.session_state.agents['waiter']
+        menu = st.session_state.agents['menu']
+        
+        # For backward compatibility, also set agent to waiter
+        agent = waiter
         
         # Display order summary in sidebar
         st.markdown("### 📝 Il Tuo Ordine")
@@ -355,8 +361,21 @@ def main():
             try:
                 # Get the last user message
                 last_user_message = st.session_state.messages[-1]["content"]
-                response = agent.chat(last_user_message)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+                
+                # First, check user message with guard
+                guarded_message = guard.process_user_message(last_user_message)
+                
+                if guarded_message == last_user_message:
+                    # Message allowed, proceed with waiter
+                    response = waiter.chat(last_user_message)
+                    
+                    # Check waiter response with guard
+                    final_response = guard.process_waiter_response(response, last_user_message)
+                else:
+                    # Message blocked by guard
+                    final_response = guarded_message
+                
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
             except Exception as e:
                 error_msg = f"❌ Errore: {str(e)}"
                 st.session_state.messages.append({"role": "assistant", "content": error_msg})
