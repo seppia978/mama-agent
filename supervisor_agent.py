@@ -249,24 +249,36 @@ class SupervisorAgent:
 
     def _extract_items_from_conversation_context(self, message_lower: str, conversation_history: List[Dict[str, str]]) -> List[str]:
         """
-        Extract items that were mentioned in conversation and user is now ordering.
+        Extract items that were mentioned in the LAST assistant message and user is now ordering.
+        Only looks at the most recent waiter response to avoid picking up old suggestions.
         """
         items = []
 
-        # Get dishes mentioned by waiter in recent messages
-        mentioned_dishes = self._extract_mentioned_dishes_from_history(conversation_history)
+        # Only look at the LAST assistant message
+        last_assistant_msg = None
+        for message in reversed(conversation_history):
+            if message.get("role") == "assistant":
+                last_assistant_msg = message.get("content", "").lower()
+                break
 
-        # Check if user message references any of these
-        for dish in mentioned_dishes:
-            dish_lower = dish.lower()
-            dish_words = [w for w in dish_lower.split() if len(w) > 3]
+        if not last_assistant_msg:
+            return items
 
-            # Check if any significant word from the dish is in the user message
-            for word in dish_words:
-                if re.search(r'\b' + re.escape(word) + r'\b', message_lower):
-                    if dish_lower not in items:
-                        items.append(dish_lower)
-                    break
+        # Find menu items in the last assistant message
+        for section in self.menu.get("sezioni", []):
+            for item in section.get("voci", []):
+                dish_name = item.get("nome", "").lower()
+                if len(dish_name) > 3 and dish_name in last_assistant_msg:
+                    # Check if user message references this dish
+                    dish_words = [w for w in dish_name.split() if len(w) > 3]
+                    common_words = {'alla', 'alle', 'dello', 'della', 'con', 'senza'}
+                    dish_words = [w for w in dish_words if w not in common_words]
+
+                    for word in dish_words:
+                        if re.search(r'\b' + re.escape(word) + r'\b', message_lower):
+                            if dish_name not in items:
+                                items.append(dish_name)
+                            break
 
         return items
 
@@ -274,18 +286,29 @@ class SupervisorAgent:
         """
         Get the last item mentioned by the waiter in conversation.
         Useful when user says "lo prendo", "quello", etc.
+        Returns the item that appears LAST (closest to the end) in the most recent assistant message.
         """
         # Look through assistant messages in reverse order
         for message in reversed(conversation_history):
             if message.get("role") == "assistant":
                 content = message.get("content", "").lower()
 
-                # Find menu items mentioned in this message
+                # Find ALL menu items mentioned in this message with their positions
+                found_items = []
                 for section in self.menu.get("sezioni", []):
                     for item in section.get("voci", []):
                         dish_name = item.get("nome", "").lower()
-                        if dish_name in content and len(dish_name) > 3:
-                            return dish_name
+                        if len(dish_name) > 3:
+                            # Find the position of this item in the content
+                            pos = content.find(dish_name)
+                            if pos != -1:
+                                found_items.append((pos, dish_name))
+
+                # Return the item that appears LAST in the message (most recently suggested)
+                if found_items:
+                    # Sort by position, return the one with highest position (last in text)
+                    found_items.sort(key=lambda x: x[0], reverse=True)
+                    return found_items[0][1]
 
         return None
 
