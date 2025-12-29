@@ -118,9 +118,7 @@ FORMATO RISPOSTE:
 - Fai domande aperte per capire meglio cosa desidera il cliente
 - Quando possibile, aggiungi dettagli appetitosi sui piatti
 
-Inizia salutando il cliente e chiedendo cosa desidera ordinare.
-
-IMPORTANTE: NON DIVAGARE MAI SU ARGOMENTI NON RELATIVI AL RISTORANTE O ALL'ORDINE, O A DETTAGLI SU PIATTI E CUCINA."""
+Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
 
     def _format_menu_for_llm(self) -> str:
         """Format menu in a readable way for the LLM"""
