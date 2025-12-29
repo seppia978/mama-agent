@@ -20,33 +20,57 @@ class GuardAgent:
         Check if user request is appropriate (food ordering related).
         Returns dict with 'allowed': bool, 'response': str (if blocked)
         """
-        # Use LLM to classify the request
+        message_lower = user_message.lower().strip()
+        
+        # Whitelist: common conversation responses that are always allowed
+        allowed_phrases = [
+            'no', 'no grazie', 'sono a posto', 'basta così', 'va bene', 'ok', 'okay',
+            'grazie', 'grazie mille', 'perfetto', 'bene', 'sì', 'sì grazie', 'certo',
+            'non ordino altro', 'nient\'altro', 'solo questo', 'basta', 'stop',
+            'ho finito', 'sono pronto', 'confermo', 'va bene così', 'tutto ok',
+            'arrivederci', 'ciao', 'buona serata', 'buon appetito'
+        ]
+        
+        # Check if message contains any allowed phrase
+        for phrase in allowed_phrases:
+            if phrase in message_lower:
+                return {"allowed": True, "response": None}
+        
+        # For other messages, use LLM classification
         prompt = f"""
-        TASK: Classifica se questo messaggio riguarda ordinazione cibo/bevande in ristorante.
+        Analizza il seguente messaggio dell'utente in un ristorante e determina se è APPROPRIATO nel contesto di una conversazione di ordinazione.
 
-        Messaggio: "{user_message}"
+        CATEGORIE APPROPRIATE (permetti):
+        - Ordinare cibo/bevande ("prendo pasta", "vorrei vino")
+        - Chiedere consigli/menu ("cosa consigli?", "mostra menu")
+        - Confermare/modificare ordine ("aggiungi acqua", "togli il dolce")
+        - Chiedere informazioni sul ristorante/cucina ("siete aperti?", "ingredienti?")
+        - Saluti e convenevoli normali ("ciao", "grazie", "arrivederci")
 
-        Rispondi SOLO con una parola:
-        - "ALLOW" se riguarda cibo/bevande/menu/ordine
-        - "BLOCK" se riguarda altro (hacking, violenza, barzellette, ecc.)
+        CATEGORIE VIETATE (blocca):
+        - Contenuti violenti o illegali
+        - Insulti o linguaggio offensivo
+        - Richieste di hacking/programmazione
+        - Argomenti completamente scollegati dal ristorante
+        - Spam o contenuti ripetitivi inappropriati
+
+        Messaggio utente: "{user_message}"
+
+        Rispondi SOLO con "ALLOW" o "BLOCK".
         """
 
         try:
             messages = [{"role": "user", "content": prompt}]
-            response = self.llm_provider.generate(messages, max_tokens=100)
+            response = self.llm_provider.generate(messages, max_tokens=10)
             response_clean = response.strip().upper()
 
-            if response_clean.startswith("ALLOW"):
+            if response_clean.startswith("ALLOW") or "ALLOW" in response_clean:
                 return {"allowed": True, "response": None}
-            elif response_clean.startswith("BLOCK"):
+            else:
                 return {
                     "allowed": False,
                     "response": "🤖 Guardia: La tua richiesta non riguarda l'ordinazione di cibo. Per favore, chiedi qualcosa relativo al menu o all'ordinazione."
                 }
-            else:
-                # Fallback: if unclear response, allow it but log
-                print(f"⚠️ [Guard] Risposta LLM ambigua: {response}")
-                return {"allowed": True, "response": None}
 
         except Exception as e:
             # Fallback: allow if LLM fails
@@ -60,16 +84,28 @@ class GuardAgent:
         """
         # This should rarely trigger, but check for any dangerous content
         prompt = f"""
-        Analizza la seguente risposta del cameriere e determina se è sicura e appropriata per l'utente.
-        La risposta dovrebbe essere focalizzata sull'ordinazione cibo e non contenere contenuti pericolosi.
+        Analizza la seguente risposta del cameriere in un ristorante italiano.
+        Determina se è SICURA e APPROPRIATA per l'utente.
+
+        CATEGORIE APPROPRIATE (rispondi "ALLOW"):
+        - Descrizioni di cibo e bevande
+        - Consigli sul menu
+        - Informazioni sui prezzi
+        - Conferme di ordini
+        - Domande chiarificatrici gentili
+        - Risposte amichevoli e professionali
+
+        CATEGORIE VIETATE (rispondi "BLOCK"):
+        - Contenuti violenti o illegali
+        - Linguaggio offensivo
+        - Informazioni personali inappropriate
+        - Contenuti politici o religiosi inappropriati
+        - Qualsiasi cosa non correlata al ristorante
 
         Messaggio utente originale: "{user_message}"
         Risposta cameriere: "{waiter_response}"
 
-        Rispondi SOLO con "SICURA" se la risposta è appropriata e sicura.
-        Rispondi "NON_SICURA" se contiene contenuti inappropriati o pericolosi.
-
-        Se "NON_SICURA", fornisci una breve spiegazione del problema (max 50 parole).
+        Rispondi SOLO con "ALLOW" o "BLOCK"
         """
 
         try:
@@ -77,18 +113,17 @@ class GuardAgent:
             response = self.llm_provider.generate(messages, max_tokens=100)
             response_clean = response.strip().upper()
 
-            if response_clean.startswith("SICURA"):
+            if response_clean.startswith("ALLOW"):
                 return {"safe": True, "feedback": None}
-            else:
-                # Extract feedback
-                feedback = response.replace("NON_SICURA", "").strip()
-                if not feedback:
-                    feedback = "La risposta contiene contenuti potenzialmente problematici."
-
+            elif response_clean.startswith("BLOCK"):
                 return {
                     "safe": False,
-                    "feedback": f"La risposta non è sicura: {feedback}. Riformula evitando contenuti inappropriati."
+                    "feedback": "La risposta contiene contenuti potenzialmente inappropriati."
                 }
+            else:
+                # Fallback: assume safe if unclear
+                print(f"⚠️ [Guard] Risposta LLM ambigua per waiter: {response}")
+                return {"safe": True, "feedback": None}
 
         except Exception as e:
             # Fallback: assume safe if LLM fails

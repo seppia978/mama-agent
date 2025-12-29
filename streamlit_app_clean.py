@@ -13,6 +13,7 @@ from datetime import datetime
 from llm_provider import create_llm_provider
 from waiter_agent import WaiterAgent
 from guard_agent import GuardAgent
+from supervisor_agent import SupervisorAgent
 
 # Load environment variables
 load_dotenv()
@@ -149,10 +150,13 @@ def initialize_agent():
         # Initialize guard agent
         guard = GuardAgent(llm_provider, menu)
         
+        # Initialize supervisor agent
+        supervisor = SupervisorAgent(llm_provider, menu)
+        
         # Initialize waiter agent
         waiter = WaiterAgent(menu, llm_provider)
         
-        return {"guard": guard, "waiter": waiter, "menu": menu}
+        return {"guard": guard, "supervisor": supervisor, "waiter": waiter, "menu": menu}
     except Exception as e:
         st.error(f"❌ Errore nell'inizializzazione: {e}")
         st.stop()
@@ -267,15 +271,13 @@ def main():
                 st.session_state.agents = agents
         
         guard = st.session_state.agents['guard']
+        supervisor = st.session_state.agents['supervisor']
         waiter = st.session_state.agents['waiter']
         menu = st.session_state.agents['menu']
         
-        # For backward compatibility, also set agent to waiter
-        agent = waiter
-        
         # Display order summary in sidebar
         st.markdown("### 📝 Il Tuo Ordine")
-        display_order_summary(agent)
+        display_order_summary(waiter)
         
         st.markdown("---")
         
@@ -288,7 +290,7 @@ def main():
         st.markdown("## 🎯 Azioni Rapide")
         
         if st.button("🔄 Reset Ordine"):
-            agent.reset_order()
+            waiter.reset_order()
             st.success("✅ Ordine azzerato!")
             st.rerun()
         
@@ -364,16 +366,66 @@ def main():
                 
                 # First, check user message with guard
                 guarded_message = guard.process_user_message(last_user_message)
+                print(f"🛡️ [GUARD] Messaggio utente: '{last_user_message}'")
+                print(f"🛡️ [GUARD] Decisione: {'APPROVATO' if guarded_message == last_user_message else 'BLOCCATO'}")
+                if guarded_message != last_user_message:
+                    print(f"🛡️ [GUARD] Risposta blocco: {guarded_message}")
                 
                 if guarded_message == last_user_message:
-                    # Message allowed, proceed with waiter
-                    response = waiter.chat(last_user_message)
+                    # Message allowed, analyze with supervisor
+                    print(f"👁️ [SUPERVISOR] Analizzo messaggio: '{last_user_message}'")
+                    analysis = supervisor.analyze_message(last_user_message, st.session_state.messages)
+                    print(f"👁️ [SUPERVISOR] Probabilità ordine: {analysis['order_probability']:.2f}")
+                    print(f"👁️ [SUPERVISOR] È ordine: {analysis['is_order']}")
+                    print(f"👁️ [SUPERVISOR] Item estratti: {analysis['extracted_items']}")
+                    print(f"👁️ [SUPERVISOR] Compliance menu: {analysis['menu_compliance']}")
                     
-                    # Check waiter response with guard
+                    if analysis["needs_clarification"]:
+                        print(f"👁️ [SUPERVISOR] Richiede chiarimento: {analysis['clarification_type']}")
+                        print(f"👁️ [SUPERVISOR] Messaggio chiarimento: {analysis['clarification_message']}")
+                        
+                        if analysis["suggested_items"]:
+                            print(f"👁️ [SUPERVISOR] Suggerimenti: {[s['suggested'] for s in analysis['suggested_items']]}")
+                        
+                        # Have waiter generate clarification response
+                        if analysis["clarification_type"] == "order_intent":
+                            clarification_prompt = f"""
+                            L'utente ha detto: "{last_user_message}"
+                            
+                            Non sono sicuro se voglia ordinare. Chiedigli gentilmente se intende effettuare un'ordinazione.
+                            Mantieni un tono amichevole e professionale.
+                            """
+                        else:  # item_confirmation
+                            clarification_prompt = f"""
+                            L'utente ha detto: "{last_user_message}"
+                            
+                            Ho trovato alcuni elementi che potrebbero non essere nel menu. 
+                            Chiedi conferma per questi suggerimenti: {analysis["clarification_message"]}
+                            """
+                        
+                        print(f"🧑‍🍳 [WAITER] Genero risposta chiarimento per: {analysis['clarification_type']}")
+                        response = waiter.chat(clarification_prompt)
+                        print(f"🧑‍🍳 [WAITER] Risposta chiarimento: {response[:100]}...")
+                    else:
+                        # No clarification needed, proceed normally
+                        print(f"🧑‍🍳 [WAITER] Nessun chiarimento necessario, rispondo normalmente")
+                        response = waiter.chat(last_user_message)
+                        print(f"🧑‍🍳 [WAITER] Risposta normale: {response[:100]}...")
+                    
+                    # Check waiter response with guard (safety check)
+                    print(f"🛡️ [GUARD] Controllo risposta waiter per sicurezza")
                     final_response = guard.process_waiter_response(response, last_user_message)
+                    if final_response != response:
+                        print(f"🛡️ [GUARD] Risposta waiter PROBLEMATICa, sostituita")
+                    else:
+                        print(f"🛡️ [GUARD] Risposta waiter sicura")
                 else:
                     # Message blocked by guard
                     final_response = guarded_message
+                    print(f"🛡️ [GUARD] Messaggio bloccato, risposta finale: {final_response}")
+                
+                print(f"📤 [SYSTEM] Risposta finale all'utente: {final_response[:100]}...")
+                print("=" * 80)
                 
                 st.session_state.messages.append({"role": "assistant", "content": final_response})
             except Exception as e:

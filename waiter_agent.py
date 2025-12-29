@@ -518,28 +518,8 @@ Inizia salutando il cliente e chiedendo cosa desidera ordinare."""
         except Exception as e:
             response = f"Mi scuso, ho avuto un problema tecnico. Può ripetere per favore? (Errore: {e})"
 
-        # Extract and add ordered items using LLM
-        ordered_items = self._extract_order_with_llm(user_message, response)
-        
-        if ordered_items:
-            print(f"🔍 Items estratti dall'LLM: {ordered_items}")
-            for item_data in ordered_items:
-                item_name = item_data.get('nome', '')
-                taglia = item_data.get('taglia')
-                custom_price = item_data.get('prezzo')
-                
-                # Find item in menu (or create custom item)
-                menu_item = self._find_menu_item(item_name, taglia, custom_price)
-                
-                if menu_item:
-                    # Check if not already in order
-                    item_id = menu_item.get('id', menu_item['nome'])
-                    if not any(order_item["item"].get("id") == item_id for order_item in self.order.items):
-                        self.order.add_item(menu_item)
-                        if menu_item.get('custom'):
-                            print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f} (prezzo da verificare)")
-                        else:
-                            print(f"✅ Aggiunto all'ordine: {menu_item['nome']} - €{menu_item.get('prezzo', 0):.2f}")
+        # NOTE: Order extraction now handled by SupervisorAgent
+        # Removed automatic order extraction to prevent conflicts
 
         # Update conversation history
         self.conversation_history.append({"role": "user", "content": user_message})
