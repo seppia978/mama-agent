@@ -181,43 +181,56 @@ class SupervisorAgent:
 
     def _find_menu_item_by_name(self, item_name: str) -> Optional[Dict[str, Any]]:
         """
-        Find a menu item by name (exact or partial match).
+        Find a menu item by name (best match based on score).
         Returns the full menu item dict with id and prezzo.
         """
         item_name_lower = item_name.lower()
+        best_match = None
+        best_score = 0
+
+        # Exclude common words from matching
+        common_words = {'il', 'la', 'lo', 'i', 'gli', 'le', 'un', 'una', 'di', 'del', 'della',
+                        'dello', 'dei', 'degli', 'delle', 'con', 'senza', 'alla', 'alle', 'al',
+                        'piccolo', 'grande', 'per', 'due', 'persone'}
 
         sections = self.menu.get("sezioni", [])
         for section in sections:
             for voce in section.get("voci", []):
                 menu_item_name = voce.get("nome", "").lower()
+                score = 0
 
-                # Exact match
+                # Exact match - highest priority
                 if menu_item_name == item_name_lower:
                     result = voce.copy()
                     result["sezione"] = section["nome"]
                     if "id" not in result:
                         result["id"] = result["nome"]
-                    return result
+                    return result  # Perfect match, return immediately
 
                 # Partial match (item_name is contained in menu item or vice versa)
-                if item_name_lower in menu_item_name or menu_item_name in item_name_lower:
-                    result = voce.copy()
-                    result["sezione"] = section["nome"]
-                    if "id" not in result:
-                        result["id"] = result["nome"]
-                    return result
+                if item_name_lower in menu_item_name:
+                    score = 100 + len(item_name_lower)  # Longer match = better
+                elif menu_item_name in item_name_lower:
+                    score = 90 + len(menu_item_name)
 
-                # Key word match
-                item_words = [w for w in item_name_lower.split() if len(w) > 3]
-                for word in item_words:
-                    if word in menu_item_name:
-                        result = voce.copy()
-                        result["sezione"] = section["nome"]
-                        if "id" not in result:
-                            result["id"] = result["nome"]
-                        return result
+                # Key word match - count how many significant words match
+                if score == 0:
+                    item_words = [w for w in item_name_lower.split() if w not in common_words and len(w) > 2]
+                    menu_words = [w for w in menu_item_name.split() if w not in common_words and len(w) > 2]
 
-        return None
+                    matching_words = sum(1 for w in item_words if any(w in mw or mw in w for mw in menu_words))
+                    if matching_words > 0:
+                        # Score based on percentage of words matched
+                        score = (matching_words / max(len(item_words), 1)) * 50
+
+                if score > best_score:
+                    best_score = score
+                    best_match = voce.copy()
+                    best_match["sezione"] = section["nome"]
+                    if "id" not in best_match:
+                        best_match["id"] = best_match["nome"]
+
+        return best_match
 
     def _extract_items_from_conversation_context(self, message_lower: str, conversation_history: List[Dict[str, str]]) -> List[str]:
         """
