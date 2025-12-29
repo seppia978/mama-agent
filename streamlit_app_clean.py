@@ -139,14 +139,23 @@ def load_menu(menu_path: str = "menu.json") -> dict:
 
 @st.cache_resource
 def initialize_agent():
-    """Initialize the LLM provider and agents (cached) - Fixed to Ollama with llama3.2:3b"""
+    """Initialize the LLM provider and agents (cached) - Using GPT-4o"""
     try:
         # Load menu
         menu = load_menu()
-        
-        # Fixed provider: Ollama with llama3.2:3b
-        llm_provider = create_llm_provider("ollama", model_name="llama3.2:3b")
-        
+
+        # Fixed provider: OpenAI GPT-4o
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            st.error("❌ OPENAI_API_KEY non configurata nel file .env")
+            st.stop()
+
+        llm_provider = create_llm_provider(
+            "openai_compatible",
+            api_key=api_key,
+            model_name="gpt-4o"
+        )
+
         # Initialize guard agent
         guard = GuardAgent(llm_provider, menu)
         
