@@ -121,55 +121,82 @@ Rispondi SOLO con il numero:"""
 
     def _extract_order_items(self, message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> List[str]:
         """
-        Extract order items dynamically from menu and conversation history.
+        Extract order items using GPT to understand what the customer is actually ordering.
         """
-        items = []
         message_lower = message.lower()
 
-        # Step 1: Build dynamic patterns from actual menu items
-        menu_items = self._get_all_menu_items()
-
-        for menu_item in menu_items:
-            item_name = menu_item["nome"].lower()
-
-            # Check for exact match
-            if item_name in message_lower:
-                if item_name not in items:
-                    items.append(item_name)
-                continue
-
-            # Check for partial match (key words from item name)
-            item_words = [w for w in item_name.split() if len(w) > 3]
-            # Exclude common words
-            common_words = {'alla', 'alle', 'dello', 'della', 'degli', 'delle', 'con', 'senza', 'piccolo', 'grande'}
-            item_words = [w for w in item_words if w not in common_words]
-
-            for word in item_words:
-                if re.search(r'\b' + re.escape(word) + r'\b', message_lower):
-                    # Found a key word - add the full menu item name
-                    if item_name not in items:
-                        items.append(item_name)
-                    break
-
-        # Step 2: Check conversation history for items mentioned by waiter
-        if conversation_history and not items:
-            # User might be referring to something the waiter suggested
-            history_items = self._extract_items_from_conversation_context(message_lower, conversation_history)
-            for item in history_items:
-                if item not in items:
-                    items.append(item)
-
-        # Step 3: Handle generic references (il, la, lo, quello, questa, etc.)
+        # Step 1: Handle generic references first (quello, questa, etc.)
         generic_refs = ['lo', 'la', 'li', 'le', 'quello', 'quella', 'questo', 'questa', 'quelli', 'quelle']
         has_generic_ref = any(re.search(r'\b' + ref + r'\b', message_lower) for ref in generic_refs)
 
-        if has_generic_ref and not items and conversation_history:
-            # Look for last mentioned item in waiter's response
+        if has_generic_ref and conversation_history:
             last_mentioned = self._get_last_mentioned_item_from_history(conversation_history)
-            if last_mentioned and last_mentioned not in items:
-                items.append(last_mentioned)
+            if last_mentioned:
+                return [last_mentioned]
 
-        return items
+        # Step 2: Get context from last assistant message
+        last_waiter_msg = ""
+        if conversation_history:
+            for msg in reversed(conversation_history):
+                if msg.get("role") == "assistant":
+                    last_waiter_msg = msg.get("content", "")
+                    break
+
+        # Step 3: Build menu list for GPT
+        menu_items = self._get_all_menu_items()
+        menu_list = "\n".join([f"- {item['nome']}" for item in menu_items])
+
+        # Step 4: Use GPT to extract items
+        try:
+            prompt = f"""Sei un assistente che aiuta a identificare cosa sta ordinando un cliente.
+
+MENU DEL RISTORANTE:
+{menu_list}
+
+ULTIMA RISPOSTA DEL CAMERIERE:
+{last_waiter_msg[:500] if last_waiter_msg else "Nessuna"}
+
+MESSAGGIO DEL CLIENTE:
+"{message}"
+
+ISTRUZIONI:
+1. Identifica SOLO i piatti/bevande che il cliente sta effettivamente ordinando
+2. Se il cliente dice qualcosa di generico come "un vino rosso", NON è un piatto del menu - rispondi con lista vuota
+3. Se il cliente si riferisce a qualcosa suggerito dal cameriere, usa il nome esatto dal menu
+4. Rispondi SOLO con i nomi esatti dei piatti dal menu, uno per riga
+5. Se non sta ordinando nulla di specifico dal menu, rispondi con "NESSUNO"
+
+Piatti ordinati (uno per riga):"""
+
+            messages = [{"role": "user", "content": prompt}]
+            response = self.llm_provider.generate(messages, max_tokens=200, temperature=0.1)
+
+            # Parse response
+            items = []
+            response_lower = response.lower().strip()
+
+            if "nessuno" in response_lower or not response_lower:
+                return []
+
+            # Match each line against menu items
+            for line in response.strip().split('\n'):
+                line = line.strip().lstrip('- ').strip()
+                if line and line.lower() != "nessuno":
+                    # Find matching menu item
+                    for menu_item in menu_items:
+                        if menu_item["nome"].lower() == line.lower():
+                            items.append(menu_item["nome"].lower())
+                            break
+                        # Partial match
+                        elif line.lower() in menu_item["nome"].lower() or menu_item["nome"].lower() in line.lower():
+                            items.append(menu_item["nome"].lower())
+                            break
+
+            return items
+
+        except Exception as e:
+            print(f"⚠️ [SUPERVISOR] LLM error in item extraction: {e}")
+            return []
 
     def _get_all_menu_items(self) -> List[Dict[str, Any]]:
         """
