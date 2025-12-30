@@ -261,9 +261,9 @@ def main():
     with st.sidebar:
         render_order_panel(waiter)
         st.markdown("---")
-        render_menu_browser(menu)
-        st.markdown("---")
         render_quick_actions()
+        st.markdown("---")
+        render_menu_browser(menu)
 
         # Reset
         st.markdown("---")
