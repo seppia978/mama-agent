@@ -1,7 +1,13 @@
-requests
+# MAMA Virtual Waiter - Dependencies
+
+# Web Framework
+streamlit>=1.28.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# HTTP Client
+requests>=2.31.0
+
+# Data Validation (optional)
 pydantic>=2.0.0
-python-dotenv
-transformers>=4.30.0
-torch>=2.0.0
-accelerate
-streamlit>=1.50.0
