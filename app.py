@@ -52,16 +52,16 @@ st.markdown("""
         color: #1a1a1a;
     }
     .user-message {
-        background: #1565C0;
-        border-left: 4px solid #0D47A1;
+        background: #BBDEFB;
+        border-left: 4px solid #64B5F6;
         margin-left: auto;
         text-align: left;
-        color: #ffffff;
+        color: #1a1a1a;
     }
     .assistant-message {
-        background: #E65100;
-        border-left: 4px solid #BF360C;
-        color: #ffffff;
+        background: #FFE0B2;
+        border-left: 4px solid #FFB74D;
+        color: #1a1a1a;
     }
 
     /* Order panel */
