@@ -234,14 +234,18 @@ def render_chat(waiter: WaiterAgent):
         del st.session_state.pending_message
 
     if user_input:
-        # Aggiungi messaggio utente
+        # Aggiungi messaggio utente e mostralo subito
         st.session_state.messages.append({"role": "user", "content": user_input})
+        st.session_state.waiting_response = True
+        st.rerun()
 
-        # Genera risposta
+    # Genera risposta se in attesa
+    if st.session_state.get("waiting_response", False):
+        last_user_msg = st.session_state.messages[-1]["content"]
         with st.spinner("🧑‍🍳 Il cameriere sta pensando..."):
-            response = waiter.chat(user_input)
-
+            response = waiter.chat(last_user_msg)
         st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.waiting_response = False
         st.rerun()
 
 
