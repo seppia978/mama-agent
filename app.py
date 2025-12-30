@@ -101,7 +101,7 @@ def initialize_waiter():
         llm = create_provider("openai", model="gpt-4o")
 
         # Menu Service
-        menu = MenuService("menu.json")
+        menu = MenuService("data/menu.json")
 
         # Order Manager
         order = OrderManager()
