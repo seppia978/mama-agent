@@ -188,12 +188,24 @@ def render_menu_browser(menu: MenuService):
 
 def render_quick_actions():
     """Renderizza azioni rapide"""
+    from datetime import datetime
+
     st.markdown("### 💡 Suggerimenti")
 
+    # Determina il pasto in base all'ora
+    hour = datetime.now().hour
+    if 5 <= hour < 11:
+        meal_label = "🌅 Colazione"
+        meal_prompt = "Dammi 3 suggerimenti dal menu per colazione"
+    elif 11 <= hour < 16:
+        meal_label = "🍝 Pranzo"
+        meal_prompt = "Dammi 3 suggerimenti dal menu per pranzo"
+    else:
+        meal_label = "🌙 Cena"
+        meal_prompt = "Dammi 3 suggerimenti dal menu per cena"
+
     suggestions = [
-        ("🌅 Colazione", "Dammi 3 suggerimenti dal menu per colazione"),
-        ("🍝 Pranzo", "Dammi 3 suggerimenti dal menu per pranzo"),
-        ("🌙 Cena", "Dammi 3 suggerimenti dal menu per cena"),
+        (meal_label, meal_prompt),
         ("🥗 Piatti vegetariani", "Quali piatti vegetariani avete?"),
         ("🍷 Abbinamento vino", "Che vino mi consigli?"),
         ("🎂 Dolci", "Cosa avete come dolce?"),
