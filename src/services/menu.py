@@ -2,9 +2,22 @@
 Menu Service - Gestione menu del ristorante
 """
 import json
+import unicodedata
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def normalize_text(text: str) -> str:
+    """
+    Normalizza il testo rimuovendo accenti e caratteri speciali.
+    Es: 'açaí' -> 'acai', 'crème brûlée' -> 'creme brulee'
+    """
+    # Decompone i caratteri Unicode (es: é -> e + combining accent)
+    normalized = unicodedata.normalize('NFD', text.lower())
+    # Rimuove i combining marks (accenti, diacritici)
+    without_accents = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return without_accents
 
 
 @dataclass
@@ -149,12 +162,21 @@ class MenuService:
         return results
 
     def find_by_name(self, name: str) -> Optional[MenuItem]:
-        """Trova un item per nome (match esatto o best match parziale)"""
+        """
+        Trova un item per nome (match esatto o best match parziale).
+        Supporta ricerca fuzzy con normalizzazione accenti (es: 'acai' trova 'Açaí Bowl')
+        """
         name_lower = name.lower()
+        name_normalized = normalize_text(name)
 
-        # Match esatto
+        # Match esatto (case insensitive)
         for item in self.items:
             if item.nome.lower() == name_lower:
+                return item
+
+        # Match esatto normalizzato (senza accenti)
+        for item in self.items:
+            if normalize_text(item.nome) == name_normalized:
                 return item
 
         # Match parziale con scoring - trova il MIGLIOR match
@@ -163,27 +185,30 @@ class MenuService:
 
         for item in self.items:
             item_name_lower = item.nome.lower()
+            item_name_normalized = normalize_text(item.nome)
             score = 0
 
-            if name_lower in item_name_lower:
-                # La query è contenuta nel nome del piatto
-                # Score più alto se il match è più specifico (nome piatto più corto = più specifico)
-                # e se la query copre una porzione maggiore del nome
-                coverage = len(name_lower) / len(item_name_lower)
-                score = coverage * 100
+            # Prova match sia con testo originale che normalizzato
+            for query, item_name in [(name_lower, item_name_lower), (name_normalized, item_name_normalized)]:
+                if query in item_name:
+                    # La query è contenuta nel nome del piatto
+                    coverage = len(query) / len(item_name)
+                    current_score = coverage * 100
 
-                # Bonus se il match è all'inizio del nome
-                if item_name_lower.startswith(name_lower):
-                    score += 50
+                    # Bonus se il match è all'inizio del nome
+                    if item_name.startswith(query):
+                        current_score += 50
 
-                # Bonus se la prima parola matcha esattamente
-                first_word = item_name_lower.split()[0]
-                if first_word == name_lower:
-                    score += 30
+                    # Bonus se la prima parola matcha esattamente
+                    first_word = item_name.split()[0]
+                    if first_word == query:
+                        current_score += 30
 
-            elif item_name_lower in name_lower:
-                # Il nome del piatto è contenuto nella query (caso raro)
-                score = 10
+                    score = max(score, current_score)
+
+                elif item_name in query:
+                    # Il nome del piatto è contenuto nella query (caso raro)
+                    score = max(score, 10)
 
             if score > best_score:
                 best_score = score
