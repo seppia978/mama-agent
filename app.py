@@ -55,12 +55,15 @@ st.markdown("""
         background: #BBDEFB;
         border-left: 4px solid #64B5F6;
         margin-left: auto;
+        margin-right: 0;
         text-align: left;
         color: #1a1a1a;
     }
     .assistant-message {
         background: #FFE0B2;
         border-left: 4px solid #FFB74D;
+        margin-left: 0;
+        margin-right: auto;
         color: #1a1a1a;
     }
 
