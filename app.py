@@ -188,6 +188,9 @@ def render_quick_actions():
     st.markdown("### 💡 Suggerimenti")
 
     suggestions = [
+        ("🌅 Colazione", "Dammi 3 suggerimenti dal menu per colazione"),
+        ("🍝 Pranzo", "Dammi 3 suggerimenti dal menu per pranzo"),
+        ("🌙 Cena", "Dammi 3 suggerimenti dal menu per cena"),
         ("🥗 Piatti vegetariani", "Quali piatti vegetariani avete?"),
         ("🍷 Abbinamento vino", "Che vino mi consigli?"),
         ("🎂 Dolci", "Cosa avete come dolce?"),
