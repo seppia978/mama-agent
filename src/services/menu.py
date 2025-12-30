@@ -149,7 +149,7 @@ class MenuService:
         return results
 
     def find_by_name(self, name: str) -> Optional[MenuItem]:
-        """Trova un item per nome (match esatto o parziale)"""
+        """Trova un item per nome (match esatto o best match parziale)"""
         name_lower = name.lower()
 
         # Match esatto
@@ -157,12 +157,39 @@ class MenuService:
             if item.nome.lower() == name_lower:
                 return item
 
-        # Match parziale
-        for item in self.items:
-            if name_lower in item.nome.lower() or item.nome.lower() in name_lower:
-                return item
+        # Match parziale con scoring - trova il MIGLIOR match
+        best_match = None
+        best_score = 0
 
-        return None
+        for item in self.items:
+            item_name_lower = item.nome.lower()
+            score = 0
+
+            if name_lower in item_name_lower:
+                # La query è contenuta nel nome del piatto
+                # Score più alto se il match è più specifico (nome piatto più corto = più specifico)
+                # e se la query copre una porzione maggiore del nome
+                coverage = len(name_lower) / len(item_name_lower)
+                score = coverage * 100
+
+                # Bonus se il match è all'inizio del nome
+                if item_name_lower.startswith(name_lower):
+                    score += 50
+
+                # Bonus se la prima parola matcha esattamente
+                first_word = item_name_lower.split()[0]
+                if first_word == name_lower:
+                    score += 30
+
+            elif item_name_lower in name_lower:
+                # Il nome del piatto è contenuto nella query (caso raro)
+                score = 10
+
+            if score > best_score:
+                best_score = score
+                best_match = item
+
+        return best_match
 
     def get_allergeni_description(self, allergeni_ids: List[int]) -> List[str]:
         """Converte ID allergeni in descrizioni"""
