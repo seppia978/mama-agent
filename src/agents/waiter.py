@@ -90,21 +90,19 @@ FORMATO:
 
     def _analyze_message(self, message: str) -> MessageAnalysis:
         """Analizza il messaggio usando GPT"""
-        # Includi gli ultimi messaggi della conversazione per il contesto
-        recent_history = ""
+        # Includi l'ultimo messaggio del cameriere (completo) per il contesto
+        last_assistant_msg = ""
         if self.conversation_history:
-            recent_msgs = self.conversation_history[-4:]  # Ultimi 2 scambi
-            history_lines = []
-            for msg in recent_msgs:
-                role = "Cliente" if msg["role"] == "user" else "Cameriere"
-                history_lines.append(f"{role}: {msg['content'][:300]}")
-            recent_history = "\n".join(history_lines)
+            for msg in reversed(self.conversation_history):
+                if msg["role"] == "assistant":
+                    last_assistant_msg = msg["content"]
+                    break
 
         prompt = f"""Analizza questo messaggio di un cliente al ristorante.
 
-Messaggio attuale: "{message}"
+Messaggio attuale del cliente: "{message}"
 
-{f"CONVERSAZIONE RECENTE:{chr(10)}{recent_history}{chr(10)}" if recent_history else ""}
+{f"ULTIMO MESSAGGIO DEL CAMERIERE:{chr(10)}{last_assistant_msg}{chr(10)}" if last_assistant_msg else ""}
 Contesto ordine attuale: {self.order.get_summary() if not self.order.is_empty() else "vuoto"}
 
 Rispondi in JSON con:
@@ -125,9 +123,12 @@ Rispondi in JSON con:
 
 IMPORTANTE:
 - "items" deve contenere i NOMI COMPLETI E ESATTI dei piatti come appaiono nel menu
-- Se il cliente dice "filetto" e il cameriere aveva suggerito "Filetto di Fassona glassato", items = ["Filetto di Fassona glassato"]
+- Se il cliente dice una parola chiave che corrisponde a un piatto suggerito dal cameriere, usa il nome completo:
+  - "paccheri" o "i paccheri" → "Mama Che Pacchero! (V)" se era stato suggerito
+  - "filetto" → "Filetto di Fassona glassato" se era stato suggerito
+  - "risotto" → "Risotto con bisque, corallo e gambero rosso" se era stato suggerito
+- Se dice "quello", "lo prendo", "sì", "il primo", "il secondo", "il terzo" riferendosi a piatti suggeriti, usa il nome completo
 - Se dice qualcosa di generico come "un vino rosso" senza riferirsi a un piatto specifico, items = []
-- Se dice "quello", "lo prendo", "sì" riferendosi a un piatto suggerito dal cameriere, usa il nome completo del piatto suggerito
 - Se esprime preferenze alimentari, riportale in "preferences"
 """
 
