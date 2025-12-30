@@ -49,16 +49,19 @@ st.markdown("""
         border-radius: 10px;
         margin: 0.5rem 0;
         max-width: 85%;
+        color: #1a1a1a;
     }
     .user-message {
-        background: #E3F2FD;
-        border-left: 4px solid #1976D2;
+        background: #1565C0;
+        border-left: 4px solid #0D47A1;
         margin-left: auto;
         text-align: left;
+        color: #ffffff;
     }
     .assistant-message {
-        background: #FFF3E0;
-        border-left: 4px solid #FF9800;
+        background: #E65100;
+        border-left: 4px solid #BF360C;
+        color: #ffffff;
     }
 
     /* Order panel */
